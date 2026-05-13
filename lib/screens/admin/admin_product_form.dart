@@ -39,6 +39,7 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
   List<String> _publicoAlvo = [];
   List<String> _tiposPele = [];
   bool _ativo = true;
+  bool _isInternal = false;
   bool _loading = false;
   bool _isEdit = false;
 
@@ -78,6 +79,7 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
         _publicoAlvo = List.from(product.applicableCrowd);
         _tiposPele = List.from(product.skinTypes);
         _ativo = product.isActive;
+        _isInternal = product.isInternal;
         _imagemUrlExistente = product.imageUrl;
       });
     }
@@ -256,6 +258,7 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
         skinTypes: _tiposPele,
         skinConcerns: const [],
         isActive: _ativo,
+        isInternal: _isInternal,
       );
 
       final service = ref.read(supabaseServiceProvider);
@@ -534,7 +537,21 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
             const SizedBox(height: 20),
 
             // ── ESTADO ───────────────────────────────────────
-            _sectionHeader('Estado', Icons.toggle_on_outlined),
+            _sectionHeader('Estado & Disponibilidade', Icons.toggle_on_outlined),
+            SwitchListTile(
+              value: _isInternal,
+              title: const Text(
+                'Produto Interno (Apenas Clínica)',
+                style: TextStyle(color: AppTheme.textPrimary),
+              ),
+              subtitle: const Text(
+                'Recomendado como tratamento em clínica',
+                style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+              ),
+              activeColor: AppTheme.primaryPurple,
+              onChanged: (v) => setState(() => _isInternal = v),
+              contentPadding: EdgeInsets.zero,
+            ),
             SwitchListTile(
               value: _ativo,
               title: const Text(

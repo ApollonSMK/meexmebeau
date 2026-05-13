@@ -20,6 +20,8 @@ class RapportAnalysisScreen extends ConsumerStatefulWidget {
 }
 
 class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
+  int _selectedTab = 0; // 0 = Casa, 1 = Clínica
+
   @override
   void initState() {
     super.initState();
@@ -289,13 +291,67 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 4),
-            const Text(
-              'Baseado na análise da tua pele',
-              style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
-            ),
             const SizedBox(height: 16),
-            _buildProductsGrid(result, products),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<int>(
+                segments: const [
+                  ButtonSegment(
+                    value: 0,
+                    label: Text('Rotina (Casa)'),
+                    icon: Icon(Icons.home_outlined),
+                  ),
+                  ButtonSegment(
+                    value: 1,
+                    label: Text('Tratamento (Clínica)'),
+                    icon: Icon(Icons.medical_services_outlined),
+                  ),
+                ],
+                selected: {_selectedTab},
+                onSelectionChanged: (set) {
+                  setState(() => _selectedTab = set.first);
+                },
+                style: ButtonStyle(
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return AppTheme.primaryPurple.withValues(alpha: 0.15);
+                    }
+                    return Colors.transparent;
+                  }),
+                  foregroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return AppTheme.primaryPurpleLight;
+                    }
+                    return AppTheme.textSecondary;
+                  }),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Builder(
+              builder: (ctx) {
+                final isInternalView = _selectedTab == 1;
+                final filteredProducts = products
+                    .where((p) => p.isInternal == isInternalView)
+                    .toList();
+
+                if (filteredProducts.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Text(
+                        isInternalView
+                            ? 'Nenhum tratamento clínico recomendado.'
+                            : 'Nenhum produto de rotina recomendado.',
+                        style: const TextStyle(color: AppTheme.textMuted),
+                      ),
+                    ),
+                  );
+                }
+
+                return _buildProductsGrid(result, filteredProducts);
+              },
+            ),
           ],
           const SizedBox(height: 40),
         ],

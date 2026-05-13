@@ -30,9 +30,13 @@ Sua tarefa:
    - dark_circles (olheiras)
 3. Identificar o tipo de pele: Normal, Oleosa, Seca, Mista, Sensível
 4. Listar as principais preocupações
-5. Recomendar os melhores produtos DA LISTA FORNECIDA (usando o ID exato)
+5. Recomendar os melhores produtos DA LISTA FORNECIDA (usando o ID exato).
+   ATENÇÃO AOS TIPOS: 
+   - [Rotina Casa / Público]: Produtos para a rotina diária do cliente.
+   - [Tratamento Interno / Clínica]: Produtos/Protocolos apenas para uso na clínica pelo profissional.
+   Recomende ambos os tipos se for adequado ao caso!
 6. Explicar POR QUE cada produto é recomendado para este perfil
-7. Sugerir uma rotina de skincare com os produtos recomendados
+7. Sugerir uma rotina de skincare (rotina de casa) com os produtos recomendados
 
 IMPORTANTE: 
 - Use APENAS os IDs dos produtos fornecidos na lista
@@ -66,7 +70,7 @@ Responda EXCLUSIVAMENTE em JSON válido com esta estrutura:
       "priority": 1
     }
   ],
-  "routine_suggestion": "Sugestão detalhada de rotina matinal e noturna"
+  "routine_suggestion": "Sugestão detalhada de rotina matinal e noturna (focada nos produtos de Rotina Casa)"
 }
 ''';
 
