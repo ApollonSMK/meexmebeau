@@ -18,6 +18,7 @@ class Product {
   final String? productAttribute;
   final String? usageMethod;
   final bool isActive;
+  final bool isInternal;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -41,6 +42,7 @@ class Product {
     this.productAttribute,
     this.usageMethod,
     this.isActive = true,
+    this.isInternal = false,
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : createdAt = createdAt ?? DateTime.now(),
@@ -77,6 +79,7 @@ class Product {
       productAttribute: json['product_attribute'] as String?,
       usageMethod: json['usage_method'] as String?,
       isActive: json['is_active'] as bool? ?? true,
+      isInternal: json['is_internal'] as bool? ?? false,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
@@ -106,6 +109,7 @@ class Product {
       'product_attribute': productAttribute,
       'usage_method': usageMethod,
       'is_active': isActive,
+      'is_internal': isInternal,
     };
   }
 
@@ -129,6 +133,7 @@ class Product {
     String? productAttribute,
     String? usageMethod,
     bool? isActive,
+    bool? isInternal,
   }) {
     return Product(
       id: id ?? this.id,
@@ -150,6 +155,7 @@ class Product {
       productAttribute: productAttribute ?? this.productAttribute,
       usageMethod: usageMethod ?? this.usageMethod,
       isActive: isActive ?? this.isActive,
+      isInternal: isInternal ?? this.isInternal,
       createdAt: createdAt,
       updatedAt: DateTime.now(),
     );
@@ -160,7 +166,8 @@ class Product {
     final indicators = indicatorCorrelation.isNotEmpty
         ? indicatorCorrelation.join(', ')
         : skinConcerns.join(', ');
-    return '[$id] $name ($category) - '
+    final typeLabel = isInternal ? '[Tratamento Interno / Clínica]' : '[Rotina Casa / Público]';
+    return '[$id] $typeLabel $name ($category) - '
         'Género: ${applicableGender ?? "Unisex"}. '
         'Para: ${applicableCrowd.join(", ")}. '
         'Indicadores: $indicators. '
