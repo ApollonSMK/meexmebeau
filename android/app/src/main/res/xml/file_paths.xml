@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- External storage for APK download (Android ≤ 28) -->
+    <external-path name="external_files" path="." />
+    <!-- App-specific external storage (Android 29+) -->
+    <external-files-path name="external_app_files" path="." />
+    <!-- Internal files fallback -->
+    <files-path name="internal_files" path="." />
+</paths>
