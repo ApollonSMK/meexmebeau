@@ -472,7 +472,32 @@ class _UpdateBottomSheetState extends State<_UpdateBottomSheet> {
       _downloading = false;
     });
 
-    await OpenFile.open(path);
+    // Tenta instalar automaticamente após download
+    _install();
+  }
+
+  Future<void> _install() async {
+    if (_apkPath == null) return;
+
+    final file = File(_apkPath!);
+    if (!await file.exists()) {
+      if (mounted) {
+        setState(() {
+          _error = 'Ficheiro não encontrado. Descarrega de novo.';
+          _apkPath = null;
+        });
+      }
+      return;
+    }
+
+    final error = await UpdateService.installApk(_apkPath!);
+    if (error != null && mounted) {
+      setState(() {
+        _error = 'Não foi possível instalar automaticamente.\n'
+            'Verifica em Definições > Apps > MEBeauty IA > '
+            'Instalar apps desconhecidas e ativa a opção.';
+      });
+    }
   }
 
   @override

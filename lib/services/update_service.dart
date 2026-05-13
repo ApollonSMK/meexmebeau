@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -95,17 +96,22 @@ class UpdateService {
   }
 
   /// Downloads the APK and returns the local file path.
+  /// Saves to external files directory (covered by our FileProvider).
   /// [onProgress] is called with values 0.0–1.0.
   static Future<String?> downloadApk(
     String url, {
     void Function(double progress)? onProgress,
   }) async {
     try {
+      final client = http.Client();
       final request = http.Request('GET', Uri.parse(url));
-      final response = await request.send().timeout(const Duration(minutes: 10));
+      request.followRedirects = true;
+      final response =
+          await client.send(request).timeout(const Duration(minutes: 10));
 
       if (response.statusCode != 200) {
         debugPrint('[UpdateService] Download failed: ${response.statusCode}');
+        client.close();
         return null;
       }
 
@@ -120,17 +126,36 @@ class UpdateService {
           onProgress?.call(received / total);
         }
       }
+      client.close();
 
+      // Use external files dir — covered by <external-files-path> in file_paths.xml
       final dir = await getExternalStorageDirectory() ??
           await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/mebeauty_update.apk');
-      await file.writeAsBytes(bytes);
 
-      debugPrint('[UpdateService] APK saved to ${file.path}');
+      // Delete old APK if exists to avoid stale files
+      if (await file.exists()) await file.delete();
+      await file.writeAsBytes(bytes, flush: true);
+
+      debugPrint('[UpdateService] APK saved to ${file.path} (${bytes.length} bytes)');
       return file.path;
     } catch (e) {
       debugPrint('[UpdateService] Download error: $e');
       return null;
+    }
+  }
+
+  /// Installs the APK at [path] using the native Android installer.
+  /// Uses our own FileProvider via MethodChannel — most reliable approach.
+  static Future<String?> installApk(String path) async {
+    try {
+      const channel = MethodChannel('com.mebeauty/install');
+      await channel.invokeMethod<bool>('installApk', {'path': path});
+      return null; // success
+    } on PlatformException catch (e) {
+      return e.message ?? 'Erro desconhecido';
+    } catch (e) {
+      return e.toString();
     }
   }
 
@@ -151,6 +176,7 @@ class UpdateService {
 
   static List<int> _parse(String v) {
     final parts = v.split('.');
-    return List.generate(3, (i) => i < parts.length ? (int.tryParse(parts[i]) ?? 0) : 0);
+    return List.generate(
+        3, (i) => i < parts.length ? (int.tryParse(parts[i]) ?? 0) : 0);
   }
 }
