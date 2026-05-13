@@ -98,9 +98,87 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
   }
 
   Future<void> _escolherImagem() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: AppTheme.bgCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppTheme.textMuted.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Text(
+                'Adicionar Foto',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.camera_alt, color: Colors.white, size: 22),
+                ),
+                title: const Text(
+                  'Tirar Foto',
+                  style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+                ),
+                subtitle: const Text(
+                  'Usa a câmara agora',
+                  style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                ),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentPink.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.accentPink.withValues(alpha: 0.3)),
+                  ),
+                  child: const Icon(Icons.photo_library, color: AppTheme.accentPinkLight, size: 22),
+                ),
+                title: const Text(
+                  'Escolher da Galeria',
+                  style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+                ),
+                subtitle: const Text(
+                  'Seleciona uma foto existente',
+                  style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                ),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
     final picker = ImagePicker();
     final picked = await picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       maxWidth: 1200,
       maxHeight: 1200,
       imageQuality: 85,
