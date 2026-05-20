@@ -190,6 +190,44 @@ class SupabaseService {
     return _client.storage.from('product-images').getPublicUrl(path);
   }
 
+  /// Upload a client's profile picture to the public storage bucket
+  Future<String> uploadClientPhoto(String clientName, List<int> bytes) async {
+    final cleanName = clientName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_').toLowerCase();
+    final fileName = '${cleanName}_profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final path = 'clients/$fileName';
+
+    await _client.storage
+        .from('product-images')
+        .uploadBinary(
+          path,
+          Uint8List.fromList(bytes),
+          fileOptions: const FileOptions(upsert: true),
+        );
+
+    return _client.storage.from('product-images').getPublicUrl(path);
+  }
+
+  /// Sincroniza a imagem de perfil de todas as análises de um determinado cliente
+  Future<void> updateClientPhotoUrl(String clientName, String photoUrl) async {
+    final response = await _client
+        .from('analyses')
+        .select()
+        .eq('client_name', clientName);
+
+    final list = response as List;
+
+    for (final row in list) {
+      final id = row['id'] as String;
+      final aiAnalysis = Map<String, dynamic>.from(row['ai_analysis'] as Map? ?? {});
+      aiAnalysis['face_image_url'] = photoUrl;
+
+      await _client
+          .from('analyses')
+          .update({'ai_analysis': aiAnalysis})
+          .eq('id', id);
+    }
+  }
+
   // ============ STATS (Admin) ============
 
   /// Get total product count

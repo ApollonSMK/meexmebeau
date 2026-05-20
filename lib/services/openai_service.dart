@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dart_openai/dart_openai.dart';
 import 'package:http/http.dart' as http;
 import '../config/constants.dart';
 import '../models/product.dart';
 import '../models/analysis_result.dart';
+import 'pdf_service.dart';
 
 class OpenAIService {
   OpenAIService() {
@@ -13,41 +15,55 @@ class OpenAIService {
 
   /// System prompt for the skin analysis AI
   static const String _systemPrompt = '''
-Você é um especialista em dermatologia estética e skincare profissional com anos de experiência em análise facial e recomendação de produtos.
+Você é um médico dermatologista estético altamente conceituado e especialista em cosmetologia avançada, com vasta experiência em analisar relatórios do scanner facial M7 (e equipamentos similares de imagem multiespectral).
 
-Recebe um rapport de análise facial (possivelmente do scanner M7 ou equipamento similar) e uma lista de produtos disponíveis no catálogo.
+Sua missão é realizar uma análise de pele extremamente detalhada, clínica, rigorosa e personalizada, fornecendo ao cliente um diagnóstico profundo e um plano de tratamento de prestígio (tipo premium/estúdio de estética de luxo).
 
-Sua tarefa:
-1. Analisar cuidadosamente o rapport e identificar todas as condições da pele
-2. Atribuir scores de 0 a 10 (onde 10 = excelente/sem problemas) para:
-   - hydration (hidratação)
-   - wrinkles (rugas e linhas finas)
-   - pores (tamanho e visibilidade dos poros)
-   - spots (manchas, hiperpigmentação)
-   - texture (textura e suavidade)
-   - acne (presença de acne ou comedões)
-   - elasticity (elasticidade e firmeza)
-   - dark_circles (olheiras)
-3. Identificar o tipo de pele: Normal, Oleosa, Seca, Mista, Sensível
-4. Listar as principais preocupações
-5. Recomendar os melhores produtos DA LISTA FORNECIDA (usando o ID exato).
-   ATENÇÃO AOS TIPOS: 
-   - [Rotina Casa / Público]: Produtos para a rotina diária do cliente.
-   - [Tratamento Interno / Clínica]: Produtos/Protocolos apenas para uso na clínica pelo profissional.
-   Recomende ambos os tipos se for adequado ao caso!
-6. Explicar POR QUE cada produto é recomendado para este perfil
-7. Sugerir uma rotina de skincare (rotina de casa) com os produtos recomendados
+Ao receber os dados de análise (que incluem scores, métricas e dados de imagem) e a lista de produtos disponíveis no catálogo:
 
-IMPORTANTE: 
-- Use APENAS os IDs dos produtos fornecidos na lista
-- Ordene recomendações por prioridade (1 = mais importante)
-- Se o rapport não tiver informação suficiente para algum score, estime com base nos dados disponíveis
-- Responda SEMPRE em Português de Portugal
-- NÃO use formatação markdown (sem **, ##, etc). Use texto simples e quebras de linha com \n
+1. DIAGNÓSTICO PROFUNDO & RIGOROSO:
+   - Analise minuciosamente todas as informações clínicas e scores de pele fornecidos.
+   - Atribua scores precisos de 0 a 10 (onde 10 representa uma pele perfeita, sem necessidade de intervenção) para cada um dos seguintes 8 indicadores:
+     * hydration (hidratação da epiderme e barreira cutânea)
+     * wrinkles (profundidade das rugas, linhas finas e expressão)
+     * pores (dilatação, visibilidade e obstrução dos poros)
+     * spots (manchas pigmentares, hiperpigmentação solar, melasma)
+     * texture (suavidade, queratinização e uniformidade do relevo cutâneo)
+     * acne (presença de lesões inflamatórias, pápulas, pústulas ou comedões)
+     * elasticity (firmeza, tônus cutâneo e sustentação)
+     * dark_circles (olheiras vasculares, pigmentares ou estruturais)
+   - Determine com precisão científica o Tipo de Pele (Normal, Oleosa, Seca, Mista ou Sensível).
+   - Identifique e liste as Preocupações Críticas da Pele (concerns) como termos clínicos profissionais.
 
-Responda EXCLUSIVAMENTE em JSON válido com esta estrutura:
+2. ELABORAÇÃO DO RESUMO CLÍNICO (summary) - DEVE SER ALGO EXCECIONAL E ULTRA-COMPLETO:
+   O campo "summary" deve ser um relatório clínico completo, rico e sofisticado, estruturado com quebras de linha claras (usando \n\n) e títulos em maiúsculas. Deve conter pelo menos 3 a 4 parágrafos robustos cobrindo:
+   - DIAGNÓSTICO GERAL DA PELE: Uma introdução clínica formal sobre a saúde geral da pele do cliente, cruzando a sua idade cronológica com a idade biológica da pele.
+   - ANÁLISE DETALHADA DOS PRINCIPAIS INDICADORES: Explicação fisiológica aprofundada dos scores mais baixos. Por exemplo, relacionar manchas com danos UV e atividade melanocítica; relacionar acne/poros com hiperatividade sebácea; detalhar a desidratação e o comprometimento da barreira lipídica.
+   - RECOMENDAÇÕES DE ATIVOS & SINERGIA COSMÉTICA: Explicar detalhadamente como os ingredientes ativos dos produtos recomendados (como Ácido Hialurónico, Vitamina C, Retinol, Niacinamida, etc.) vão atuar sinergicamente nas células da pele para reverter os danos identificados.
+   - DIRETRIZES DE TRATAMENTO PROFISSIONAL: Explicar a importância de aliar o protocolo clínico profissional (Soins Cliniques) com a manutenção rigorosa em casa (Soins Domiciles) para potenciar e prolongar os resultados.
+
+3. RECOMENDAÇÕES DE PRODUTOS PREMIUM:
+   - Selecione estrategicamente os melhores produtos do catálogo que correspondam exatamente às necessidades diagnosticadas do cliente.
+   - Use APENAS os IDs de produtos fornecidos na lista.
+   - Classifique as recomendações por prioridade de impacto (1 = prioridade máxima).
+   - Equilibre a recomendação entre:
+     * [Rotina Casa / Público]: Cuidados diários que o cliente fará em casa.
+     * [Tratamento Interno / Clínica]: Protocolos intensivos que só podem ser aplicados em consultório pelo profissional.
+   - No campo "reason" de cada produto, escreva uma explicação clínica detalhada e sofisticada, justificando o porquê de aquele produto em particular ser vital para a regeneração da pele daquele cliente.
+
+4. PROTOCOLO DE ROTINA DE CASA DETALHADO (routine_suggestion):
+   O campo "routine_suggestion" deve ser um guia passo a passo luxuoso e extremamente detalhado para o ritual diário do cliente, separado por:
+   - RITUAL MATINAL (MANHÃ): Passos claros e ordenados de limpeza, tonificação, sérum de tratamento ativo, hidratação e proteção solar de prestígio, com conselhos de aplicação profissional (ex: massagem ascendente, pressões suaves).
+   - RITUAL NOTURNO (NOITE): Passos claros e ordenados de dupla limpeza, esfoliação/máscara semanal (se recomendado), tratamento reparador regenerador (com retinol ou ácidos ativos) e creme de nutrição profunda, especificando a frequência de uso e técnicas de relaxamento facial.
+
+REGRAS DE FORMATAÇÃO E IDIOMA CRÍTICAS:
+- Responda SEMPRE em Português de Portugal sofisticado, elegante e profissional.
+- NÃO use nenhuma formatação markdown (NÃO use asteriscos **, cardinais ##, marcadores de lista markdown, etc.). Use apenas texto simples. Para estruturar cabeçalhos, use letras maiúsculas (ex: RITUAL MATINAL:) e use quebras de linha com \n\n para separar secções.
+- Responda EXCLUSIVAMENTE em formato JSON perfeitamente válido com a estrutura indicada abaixo.
+
+Estrutura JSON esperada:
 {
-  "client_name": "Nome da pessoa (se disponível no rapport)",
+  "client_name": "Nome da pessoa (se disponível)",
   "client_age": 42,
   "skin_age": 42,
   "skin_type": "Normal|Oleosa|Seca|Mista|Sensível",
@@ -61,16 +77,16 @@ Responda EXCLUSIVAMENTE em JSON válido com esta estrutura:
     "elasticity": 0-10,
     "dark_circles": 0-10
   },
-  "concerns": ["preocupação1", "preocupação2"],
-  "summary": "Resumo detalhado da análise da pele",
+  "concerns": ["Hiperpigmentação Epidérmica", "Desidratação Cutânea", "Perda de Firmeza"],
+  "summary": "DIAGNÓSTICO GERAL DA PELE:\\n\\n[Texto longo e ultra-completo]\\n\\nANÁLISE DETALHADA DOS INDICADORES:\\n\\n[Texto longo e ultra-completo]\\n\\nRECOMENDAÇÕES DE ATIVOS & SINERGIA COSMÉTICA:\\n\\n[Texto longo e ultra-completo]\\n\\nDIRETRIZES DE TRATAMENTO PROFISSIONAL:\\n\\n[Texto longo e ultra-completo]",
   "recommendations": [
     {
       "product_id": "uuid-do-produto",
-      "reason": "Explicação de por que este produto é ideal para este perfil",
+      "reason": "Explicação clínica detalhada e sofisticada de por que este produto específico é indispensável.",
       "priority": 1
     }
   ],
-  "routine_suggestion": "Sugestão detalhada de rotina matinal e noturna (focada nos produtos de Rotina Casa)"
+  "routine_suggestion": "RITUAL MATINAL (MANHÃ):\\n\\n1. Limpeza...\\n2. Tonificação...\\n\\nRITUAL NOTURNO (NOITE):\\n\\n1. Dupla Limpeza...\\n2. Tratamento reparador..."
 }
 ''';
 
@@ -131,12 +147,20 @@ Analise o rapport acima e recomende os melhores produtos do catálogo para este 
     return AnalysisResult.fromGptResponse(rapportText, gptJson);
   }
 
-  /// Analyze a PDF rapport directly — sends the full PDF to GPT-4o
-  /// so it can see images, charts, graphs and text
+  /// Analyze a PDF rapport directly — extracts text locally first, and then sends both
+  /// the extracted text and the PDF base64 file to GPT-4o for a high-quality clinical analysis
   Future<AnalysisResult> analyzePdfDirect({
     required String pdfFilePath,
     required List<Product> availableProducts,
   }) async {
+    // 1. Extract text locally using Syncfusion PDF
+    String extractedText = '';
+    try {
+      extractedText = await PdfService.extractTextFromPdf(pdfFilePath);
+    } catch (e) {
+      debugPrint('Local PDF text extraction failed: $e');
+    }
+
     final file = File(pdfFilePath);
     final bytes = await file.readAsBytes();
     final base64Pdf = base64Encode(bytes);
@@ -147,14 +171,18 @@ Analise o rapport acima e recomende os melhores produtos do catálogo para este 
 
     final userTextMessage = '''
 O ficheiro PDF em anexo é um rapport de análise facial do scanner M7.
-Analise TODAS as imagens, gráficos, scores e texto do rapport.
+
+TEXTO EXTRAÍDO DO PDF:
+---
+$extractedText
+---
 
 CATÁLOGO DE PRODUTOS DISPONÍVEIS:
 ---
 $productCatalog
 ---
 
-Analise o rapport completo (incluindo imagens e gráficos) e recomende os melhores produtos. Responda em JSON.
+Analise o rapport completo de forma profunda e profissional (incluindo imagens, gráficos e o texto extraído fornecido acima) e recomende os melhores produtos. Responda em JSON seguindo rigorosamente as instruções do sistema.
 ''';
 
     // Use HTTP directly to support file input (dart_openai doesn't support it)
@@ -235,64 +263,87 @@ Important Rules:
 4. Do not include markdown formatting or wrapping around JSON, return ONLY the raw JSON string.
 ''';
 
-    final chatCompletion = await OpenAI.instance.chat.create(
-      model: 'gpt-4o',
-      responseFormat: {"type": "json_object"},
-      messages: [
-        OpenAIChatCompletionChoiceMessageModel(
-          role: OpenAIChatMessageRole.system,
-          content: [
-            OpenAIChatCompletionChoiceMessageContentItemModel.text(systemPrompt),
-          ],
-        ),
-        OpenAIChatCompletionChoiceMessageModel(
-          role: OpenAIChatMessageRole.user,
-          content: [
-            OpenAIChatCompletionChoiceMessageContentItemModel.imageUrl(
-              'data:image/jpeg;base64,$base64Image',
-            ),
-          ],
-        ),
-      ],
-      temperature: 0.2,
-      maxTokens: 1000,
+    final response = await http.post(
+      Uri.parse('https://api.openai.com/v1/chat/completions'),
+      headers: {
+        'Authorization': 'Bearer ${AppConstants.openAiApiKey}',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'model': 'gpt-4o',
+        'response_format': {'type': 'json_object'},
+        'temperature': 0.2,
+        'max_tokens': 1000,
+        'messages': [
+          {
+            'role': 'system',
+            'content': systemPrompt,
+          },
+          {
+            'role': 'user',
+            'content': [
+              {
+                'type': 'image_url',
+                'image_url': {
+                  'url': 'data:image/jpeg;base64,$base64Image',
+                },
+              },
+            ],
+          },
+        ],
+      }),
     );
 
-    final responseContent =
-        chatCompletion.choices.first.message.content?.first.text ?? '{}';
+    if (response.statusCode != 200) {
+      throw Exception('OpenAI API error: ${response.statusCode} — ${response.body}');
+    }
+
+    final responseJson = jsonDecode(response.body);
+    final responseContent = responseJson['choices'][0]['message']['content'] ?? '{}';
 
     return jsonDecode(responseContent) as Map<String, dynamic>;
   }
 
   /// Simple text extraction from image (if rapport is an image)
   Future<String> extractTextFromImage(String base64Image) async {
-    final chatCompletion = await OpenAI.instance.chat.create(
-      model: 'gpt-4o',
-      messages: [
-        OpenAIChatCompletionChoiceMessageModel(
-          role: OpenAIChatMessageRole.system,
-          content: [
-            OpenAIChatCompletionChoiceMessageContentItemModel.text(
-              'Extraia TODO o texto visível nesta imagem de rapport/relatório de análise facial. '
-              'Inclua todos os números, scores, percentagens e categorias. '
-              'Formate de forma estruturada e legível.',
-            ),
-          ],
-        ),
-        OpenAIChatCompletionChoiceMessageModel(
-          role: OpenAIChatMessageRole.user,
-          content: [
-            OpenAIChatCompletionChoiceMessageContentItemModel.imageUrl(
-              'data:image/jpeg;base64,$base64Image',
-            ),
-          ],
-        ),
-      ],
-      maxTokens: 1500,
+    final response = await http.post(
+      Uri.parse('https://api.openai.com/v1/chat/completions'),
+      headers: {
+        'Authorization': 'Bearer ${AppConstants.openAiApiKey}',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'model': 'gpt-4o',
+        'temperature': 0.3,
+        'max_tokens': 1500,
+        'messages': [
+          {
+            'role': 'system',
+            'content': 'Extraia TODO o texto visível nesta imagem de rapport/relatório de análise facial. '
+                'Inclua todos os números, scores, percentagens e categorias. '
+                'Formate de forma estruturada e legível.',
+          },
+          {
+            'role': 'user',
+            'content': [
+              {
+                'type': 'image_url',
+                'image_url': {
+                  'url': 'data:image/jpeg;base64,$base64Image',
+                },
+              },
+            ],
+          },
+        ],
+      }),
     );
 
-    return chatCompletion.choices.first.message.content?.first.text ??
-        'Não foi possível extrair texto da imagem.';
+    if (response.statusCode != 200) {
+      throw Exception('OpenAI API error: ${response.statusCode} — ${response.body}');
+    }
+
+    final responseJson = jsonDecode(response.body);
+    return responseJson['choices'][0]['message']['content'] ?? 'Não foi possível extrair texto da imagem.';
   }
 }
 

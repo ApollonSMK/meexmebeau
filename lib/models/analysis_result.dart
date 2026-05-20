@@ -110,6 +110,7 @@ class AnalysisResult {
   final String summary;
   final List<ProductRecommendation> recommendations;
   final String? routineSuggestion;
+  final String? faceImage;
   final DateTime createdAt;
 
   AnalysisResult({
@@ -125,6 +126,7 @@ class AnalysisResult {
     required this.summary,
     this.recommendations = const [],
     this.routineSuggestion,
+    this.faceImage,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -158,6 +160,7 @@ class AnalysisResult {
                 .toList()
           : [],
       routineSuggestion: aiAnalysis['routine_suggestion'] as String?,
+      faceImage: aiAnalysis['face_image_url'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
@@ -179,6 +182,7 @@ class AnalysisResult {
         'summary': summary,
         'recommendations': recommendations.map((r) => r.toJson()).toList(),
         'routine_suggestion': routineSuggestion,
+        'face_image_url': faceImage,
       },
       'recommended_product_ids': recommendations
           .map((r) => r.productId)
@@ -215,6 +219,7 @@ class AnalysisResult {
                 .toList()
           : [],
       routineSuggestion: gptJson['routine_suggestion'] as String?,
+      faceImage: gptJson['face_image_url'] as String?,
     );
   }
 }

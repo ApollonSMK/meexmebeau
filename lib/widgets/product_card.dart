@@ -41,7 +41,7 @@ class ProductCard extends StatelessWidget {
               ),
               child: AspectRatio(
                 aspectRatio: 1.3,
-                child: product.imageUrl != null
+                child: product.imageUrl != null && product.imageUrl!.isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: product.imageUrl!,
                         fit: BoxFit.cover,

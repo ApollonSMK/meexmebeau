@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../config/theme.dart';
 import '../config/l10n.dart';
 import '../providers/providers.dart';
+import '../models/product.dart';
 
 class ProductsScreen extends ConsumerWidget {
   const ProductsScreen({super.key});
@@ -93,7 +95,7 @@ class ProductsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _productTile(BuildContext context, WidgetRef ref, dynamic product) {
+  Widget _productTile(BuildContext context, WidgetRef ref, Product product) {
     final l10n = AppL10n.of(context, ref);
     return GestureDetector(
       onTap: () => context.push('/products/${product.id}'),
@@ -106,17 +108,31 @@ class ProductsScreen extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: 50,
+                height: 50,
                 color: AppTheme.bgElevated,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.spa,
-                color: AppTheme.primaryPurpleLight,
-                size: 24,
+                child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: product.imageUrl!,
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const Center(
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1.5,
+                              color: AppTheme.primarySalmon,
+                            ),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => _spaPlaceholder(product),
+                      )
+                    : _spaPlaceholder(product),
               ),
             ),
             const SizedBox(width: 14),
@@ -171,6 +187,16 @@ class ProductsScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _spaPlaceholder(Product product) {
+    return Icon(
+      Icons.spa,
+      color: product.isActive
+          ? AppTheme.primaryPurpleLight
+          : AppTheme.textMuted,
+      size: 24,
     );
   }
 }

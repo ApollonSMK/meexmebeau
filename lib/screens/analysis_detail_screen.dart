@@ -23,13 +23,20 @@ final analysisDetailProvider = FutureProvider.family<
   return (analysis: analysis, products: products);
 });
 
-class AnalysisDetailScreen extends ConsumerWidget {
+class AnalysisDetailScreen extends ConsumerStatefulWidget {
   final String analysisId;
   const AnalysisDetailScreen({super.key, required this.analysisId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final detail = ref.watch(analysisDetailProvider(analysisId));
+  ConsumerState<AnalysisDetailScreen> createState() => _AnalysisDetailScreenState();
+}
+
+class _AnalysisDetailScreenState extends ConsumerState<AnalysisDetailScreen> {
+  int _selectedTab = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final detail = ref.watch(analysisDetailProvider(widget.analysisId));
     final l10n = AppL10n.of(context, ref);
 
     return Scaffold(
@@ -225,28 +232,8 @@ class AnalysisDetailScreen extends ConsumerWidget {
             const SizedBox(height: 24),
           ],
 
-          // Recommendations
-          if (products.isNotEmpty) ...[
-            Text(
-              l10n.recommendedProducts,
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.basedOnSkinAnalysis,
-              style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            _buildProductsList(context, ref, result, products),
-          ],
-
           // Routine
           if (result.routineSuggestion != null) ...[
-            const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -293,7 +280,81 @@ class AnalysisDetailScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-            ).animate().fadeIn(delay: 800.ms, duration: 500.ms),
+            ).animate().fadeIn(delay: 600.ms, duration: 500.ms),
+            const SizedBox(height: 24),
+          ],
+
+          // Recommendations
+          if (products.isNotEmpty) ...[
+            Text(
+              l10n.recommendedProducts,
+              style: const TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<int>(
+                segments: [
+                  ButtonSegment(
+                    value: 0,
+                    label: Text(l10n.routineHome),
+                    icon: const Icon(Icons.home_outlined),
+                  ),
+                  ButtonSegment(
+                    value: 1,
+                    label: Text(l10n.treatmentClinic),
+                    icon: const Icon(Icons.medical_services_outlined),
+                  ),
+                ],
+                selected: {_selectedTab},
+                onSelectionChanged: (set) {
+                  setState(() => _selectedTab = set.first);
+                },
+                style: ButtonStyle(
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return AppTheme.primaryPurple.withValues(alpha: 0.15);
+                    }
+                    return Colors.transparent;
+                  }),
+                  foregroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return AppTheme.primaryPurpleLight;
+                    }
+                    return AppTheme.textSecondary;
+                  }),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Builder(
+              builder: (ctx) {
+                final isInternalView = _selectedTab == 1;
+                final filteredProducts = products
+                    .where((p) => p.isInternal == isInternalView)
+                    .toList();
+
+                if (filteredProducts.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Text(
+                        isInternalView
+                            ? l10n.noClinicRecommended
+                            : l10n.noHomeRecommended,
+                        style: const TextStyle(color: AppTheme.textMuted),
+                      ),
+                    ),
+                  );
+                }
+
+                return _buildProductsGrid(result, filteredProducts);
+              },
+            ),
           ],
           const SizedBox(height: 40),
         ],
@@ -323,28 +384,31 @@ class AnalysisDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProductsList(
-    BuildContext context,
-    WidgetRef ref,
-    AnalysisResult result,
-    List<Product> products,
-  ) {
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: products.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (ctx, i) {
-        final product = products[i];
-        final rec = result.recommendations
-            .where((r) => r.productId == product.id)
-            .firstOrNull;
-        return ProductCard(
-          product: product,
-          matchReason: rec?.reason,
-          priority: rec?.priority,
-          onTap: () => context.push('/products/${product.id}'),
-        ).animate().fadeIn(delay: Duration(milliseconds: 600 + i * 100));
+  Widget _buildProductsGrid(AnalysisResult result, List<Product> products) {
+    return LayoutBuilder(
+      builder: (ctx, constraints) {
+        final cardWidth = (constraints.maxWidth - 12) / 2;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: List.generate(products.length, (i) {
+            final product = products[i];
+            final rec = result.recommendations
+                .where((r) => r.productId == product.id)
+                .firstOrNull;
+            return SizedBox(
+              width: cardWidth,
+              child: ProductCard(
+                product: product,
+                matchReason: rec?.reason,
+                priority: rec?.priority,
+                onTap: () => context.push('/products/${product.id}'),
+              ).animate().fadeIn(
+                    delay: Duration(milliseconds: 600 + i * 100),
+                  ),
+            );
+          }),
+        );
       },
     );
   }

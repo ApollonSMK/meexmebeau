@@ -10,6 +10,7 @@ import 'screens/admin/admin_dashboard.dart';
 import 'screens/admin/admin_products.dart';
 import 'screens/admin/admin_product_form.dart';
 import 'screens/analysis_detail_screen.dart';
+import 'screens/client_profile_screen.dart';
 import 'config/theme.dart';
 
 class MeApp extends StatelessWidget {
@@ -47,6 +48,12 @@ final _router = GoRouter(
           ProductDetailScreen(productId: state.pathParameters['id']!),
     ),
     GoRoute(path: '/history', builder: (_, _) => const HistoryScreen()),
+    GoRoute(
+      path: '/client/:name',
+      builder: (_, state) => ClientProfileScreen(
+        clientName: Uri.decodeComponent(state.pathParameters['name']!),
+      ),
+    ),
     GoRoute(path: '/admin/login', builder: (_, _) => const AdminLoginScreen()),
     GoRoute(path: '/admin', builder: (_, _) => const AdminDashboard()),
     GoRoute(

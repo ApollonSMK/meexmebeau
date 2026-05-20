@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../config/theme.dart';
 import '../../config/l10n.dart';
 import '../../providers/providers.dart';
@@ -124,19 +125,31 @@ class AdminProductsScreen extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: 44,
+                  height: 44,
                   color: AppTheme.bgElevated,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.spa,
-                  color: product.isActive
-                      ? AppTheme.primaryPurpleLight
-                      : AppTheme.textMuted,
-                  size: 22,
+                  child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: product.imageUrl!,
+                          width: 44,
+                          height: 44,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => const Center(
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                color: AppTheme.primarySalmon,
+                              ),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => _spaPlaceholder(product),
+                        )
+                      : _spaPlaceholder(product),
                 ),
               ),
               const SizedBox(width: 12),
@@ -198,6 +211,16 @@ class AdminProductsScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _spaPlaceholder(Product product) {
+    return Icon(
+      Icons.spa,
+      color: product.isActive
+          ? AppTheme.primaryPurpleLight
+          : AppTheme.textMuted,
+      size: 22,
     );
   }
 }
