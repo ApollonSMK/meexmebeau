@@ -107,12 +107,54 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
       final data = await openAI.analyzeProductImage(base64Image);
 
       if (mounted) {
+        // Helpers para normalização e resiliência
+        String mapGender(String raw) {
+          final clean = raw.trim().toLowerCase();
+          if (clean.contains('masculino') || clean.contains('masculin')) return '01-Masculino';
+          if (clean.contains('feminino') || clean.contains('feminin')) return '02-Feminino';
+          if (clean.contains('unissexo') || clean.contains('unisexe')) return '03-Unissexo';
+          return raw;
+        }
+
+        String mapCrowd(String raw) {
+          final clean = raw.trim().toLowerCase();
+          if (clean.contains('jovem') && !clean.contains('adulto')) return '01-Jovem';
+          if (clean.contains('adulto jovem') || clean.contains('jeune adulte')) return '02-Adulto Jovem';
+          if (clean.contains('meia-idade') || clean.contains('moyen')) return '03-Meia-Idade';
+          if (clean.contains('sénior') || clean.contains('senior')) return '04-Sénior';
+          if (clean.contains('todos') || clean.contains('tous')) return '05-Todos';
+          return raw;
+        }
+
+        List<String> extractRobustList(dynamic raw, List<String> allowedOptions, {String Function(String)? mapper}) {
+          if (raw == null) return [];
+          final List<String> items = [];
+          if (raw is List) {
+            for (final item in raw) {
+              if (item != null) {
+                var str = item.toString().trim();
+                if (mapper != null) str = mapper(str);
+                if (allowedOptions.contains(str)) items.add(str);
+              }
+            }
+          } else if (raw is String) {
+            final parts = raw.split(',');
+            for (final part in parts) {
+              var str = part.trim();
+              if (mapper != null) str = mapper(str);
+              if (allowedOptions.contains(str)) items.add(str);
+            }
+          }
+          return items;
+        }
+
         setState(() {
           if (data['name'] != null) _nomeController.text = data['name'].toString();
           if (data['brand'] != null) _marcaController.text = data['brand'].toString();
           if (data['description'] != null) _descricaoController.text = data['description'].toString();
           if (data['ingredients'] != null) _ingredientesController.text = data['ingredients'].toString();
           if (data['product_attribute'] != null) _atributoController.text = data['product_attribute'].toString();
+          
           if (data['usage_method'] != null) {
             String usage = data['usage_method'].toString();
             if (usage.length > 40) {
@@ -120,33 +162,31 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
             }
             _modoUsoController.text = usage;
           }
-          if (data['category'] != null && AppConstants.productCategories.contains(data['category'])) {
-            _categoria = data['category'].toString();
+          
+          if (data['category'] != null) {
+            final catStr = data['category'].toString().trim();
+            if (AppConstants.productCategories.contains(catStr)) {
+              _categoria = catStr;
+            }
           }
-          if (data['applicable_gender'] != null && AppConstants.genderOptions.contains(data['applicable_gender'])) {
-            _genero = data['applicable_gender'].toString();
+          
+          if (data['applicable_gender'] != null) {
+            final genStr = mapGender(data['applicable_gender'].toString());
+            if (AppConstants.genderOptions.contains(genStr)) {
+              _genero = genStr;
+            }
           }
-          if (data['application_skin'] != null && AppConstants.skinConditionOptions.contains(data['application_skin'])) {
-            _condicaoPele = data['application_skin'].toString();
+          
+          if (data['application_skin'] != null) {
+            final skinStr = data['application_skin'].toString().trim();
+            if (AppConstants.skinConditionOptions.contains(skinStr)) {
+              _condicaoPele = skinStr;
+            }
           }
-          if (data['indicator_correlation'] != null) {
-            _indicadores = (data['indicator_correlation'] as List)
-                .map((e) => e.toString())
-                .where((e) => AppConstants.indicatorOptions.contains(e))
-                .toList();
-          }
-          if (data['applicable_crowd'] != null) {
-            _publicoAlvo = (data['applicable_crowd'] as List)
-                .map((e) => e.toString())
-                .where((e) => AppConstants.crowdOptions.contains(e))
-                .toList();
-          }
-          if (data['skin_types'] != null) {
-            _tiposPele = (data['skin_types'] as List)
-                .map((e) => e.toString())
-                .where((e) => AppConstants.skinTypes.contains(e))
-                .toList();
-          }
+          
+          _indicadores = extractRobustList(data['indicator_correlation'], AppConstants.indicatorOptions);
+          _publicoAlvo = extractRobustList(data['applicable_crowd'], AppConstants.crowdOptions, mapper: mapCrowd);
+          _tiposPele = extractRobustList(data['skin_types'], AppConstants.skinTypes);
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
