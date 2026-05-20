@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/theme.dart';
+import '../config/l10n.dart';
 import '../providers/providers.dart';
 
 class ProductDetailScreen extends ConsumerWidget {
@@ -11,19 +12,21 @@ class ProductDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final products = ref.watch(productsProvider);
+    final l10n = AppL10n.of(context, ref);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Produto')),
+      appBar: AppBar(title: Text(l10n.t('Produto', 'Produit'))),
       body: products.when(
         data: (list) {
           final product = list.where((p) => p.id == productId).firstOrNull;
-          if (product == null)
-            return const Center(
+          if (product == null) {
+            return Center(
               child: Text(
-                'Produto não encontrado',
-                style: TextStyle(color: AppTheme.textMuted),
+                l10n.t('Produto não encontrado', 'Produit non trouvé'),
+                style: const TextStyle(color: AppTheme.textMuted),
               ),
             );
+          }
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -39,14 +42,14 @@ class ProductDetailScreen extends ConsumerWidget {
                           width: double.infinity,
                           height: 260,
                           fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(
+                          placeholder: (_, _) => Container(
                             height: 260,
                             color: AppTheme.bgCard,
                             child: const Center(
                               child: CircularProgressIndicator(),
                             ),
                           ),
-                          errorWidget: (_, __, ___) => _imagePlaceholder(),
+                          errorWidget: (_, _, _) => _imagePlaceholder(),
                         )
                       : _imagePlaceholder(),
                 ),
@@ -76,7 +79,7 @@ class ProductDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  product.category,
+                  l10n.translateCategory(product.category),
                   style: const TextStyle(
                     color: AppTheme.textMuted,
                     fontSize: 14,
@@ -99,9 +102,9 @@ class ProductDetailScreen extends ConsumerWidget {
 
                 // Description
                 if (product.description != null) ...[
-                  const Text(
-                    'Descrição',
-                    style: TextStyle(
+                  Text(
+                    l10n.t('Descrição', 'Description'),
+                    style: const TextStyle(
                       color: AppTheme.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -121,9 +124,9 @@ class ProductDetailScreen extends ConsumerWidget {
 
                 // Skin Types
                 if (product.skinTypes.isNotEmpty) ...[
-                  const Text(
-                    'Tipos de Pele',
-                    style: TextStyle(
+                  Text(
+                    l10n.t('Tipos de Pele', 'Types de Peau'),
+                    style: const TextStyle(
                       color: AppTheme.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -136,7 +139,7 @@ class ProductDetailScreen extends ConsumerWidget {
                     children: product.skinTypes
                         .map(
                           (t) => Chip(
-                            label: Text(t),
+                            label: Text(l10n.translateSkinType(t)),
                             avatar: const Icon(
                               Icons.check_circle,
                               size: 16,
@@ -151,9 +154,9 @@ class ProductDetailScreen extends ConsumerWidget {
 
                 // Concerns
                 if (product.skinConcerns.isNotEmpty) ...[
-                  const Text(
-                    'Indicações',
-                    style: TextStyle(
+                  Text(
+                    l10n.t('Indicações', 'Indications'),
+                    style: const TextStyle(
                       color: AppTheme.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -164,7 +167,7 @@ class ProductDetailScreen extends ConsumerWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: product.skinConcerns
-                        .map((c) => Chip(label: Text(c)))
+                        .map((c) => Chip(label: Text(l10n.translateIndicator(c))))
                         .toList(),
                   ),
                   const SizedBox(height: 20),
@@ -172,9 +175,9 @@ class ProductDetailScreen extends ConsumerWidget {
 
                 // Ingredients
                 if (product.ingredients != null) ...[
-                  const Text(
-                    'Ingredientes',
-                    style: TextStyle(
+                  Text(
+                    l10n.t('Ingredientes', 'Ingrédients'),
+                    style: const TextStyle(
                       color: AppTheme.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -196,7 +199,7 @@ class ProductDetailScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, _) => Center(child: Text('${l10n.t('Erro', 'Erreur')}: $e')),
       ),
     );
   }

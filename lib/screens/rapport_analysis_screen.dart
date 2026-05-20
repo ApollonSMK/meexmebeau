@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../config/theme.dart';
+import '../config/l10n.dart';
 import '../providers/providers.dart';
 import '../services/share_intent_service.dart';
 import '../widgets/loading_overlay.dart';
@@ -49,10 +50,11 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(analysisNotifierProvider);
+    final l10n = AppL10n.of(context, ref);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Análise'),
+        title: Text(l10n.analysisTitle),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -62,20 +64,21 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
         ),
       ),
       body: switch (state.status) {
-        AnalysisStatus.idle => const Center(
+        AnalysisStatus.idle => Center(
           child: Text(
-            'A preparar análise...',
-            style: TextStyle(color: AppTheme.textMuted),
+            l10n.preparingAnalysis,
+            style: const TextStyle(color: AppTheme.textMuted),
           ),
         ),
         AnalysisStatus.loading => const LoadingOverlay(),
-        AnalysisStatus.error => _buildError(state.error ?? 'Erro desconhecido'),
+        AnalysisStatus.error => _buildError(state.error ?? l10n.t('Erro desconhecido', 'Erreur inconnue')),
         AnalysisStatus.success => _buildResults(state),
       },
     );
   }
 
   Widget _buildError(String error) {
+    final l10n = AppL10n.of(context, ref);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -84,9 +87,9 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
           children: [
             const Icon(Icons.error_outline, size: 64, color: AppTheme.error),
             const SizedBox(height: 16),
-            const Text(
-              'Erro na Análise',
-              style: TextStyle(
+            Text(
+              l10n.analysisErrorTitle,
+              style: const TextStyle(
                 color: AppTheme.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
@@ -105,7 +108,7 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
                 context.go('/');
               },
               icon: const Icon(Icons.arrow_back),
-              label: const Text('Voltar'),
+              label: Text(l10n.back),
             ),
           ],
         ),
@@ -116,6 +119,7 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
   Widget _buildResults(AnalysisState state) {
     final result = state.result!;
     final products = state.recommendedProducts;
+    final l10n = AppL10n.of(context, ref);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -138,7 +142,7 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
                     const Icon(Icons.face, color: Colors.white, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      'Pele ${result.skinType}',
+                      '${l10n.t('Pele', 'Peau')} ${l10n.translateSkinType(result.skinType)}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -164,9 +168,9 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Resumo da Análise',
-                  style: TextStyle(
+                Text(
+                  l10n.analysisSummary,
+                  style: const TextStyle(
                     color: AppTheme.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -187,9 +191,9 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
           const SizedBox(height: 24),
 
           // Scores
-          const Text(
-            'Scores da Pele',
-            style: TextStyle(
+          Text(
+            l10n.skinScores,
+            style: const TextStyle(
               color: AppTheme.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -201,9 +205,9 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
 
           // Concerns
           if (result.concerns.isNotEmpty) ...[
-            const Text(
-              'Preocupações Identificadas',
-              style: TextStyle(
+            Text(
+              l10n.identifiedConcerns,
+              style: const TextStyle(
                 color: AppTheme.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -216,7 +220,7 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
               children: result.concerns
                   .map(
                     (c) => Chip(
-                      label: Text(c),
+                      label: Text(l10n.translateIndicator(c)),
                       avatar: const Icon(
                         Icons.warning_amber,
                         size: 16,
@@ -248,17 +252,17 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.auto_awesome,
                         color: AppTheme.primaryPurpleLight,
                         size: 20,
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
-                        'Rotina Sugerida',
-                        style: TextStyle(
+                        l10n.suggestedRoutine,
+                        style: const TextStyle(
                           color: AppTheme.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -283,9 +287,9 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
 
           // Recommendations — 2-column grid
           if (products.isNotEmpty) ...[
-            const Text(
-              'Produtos Recomendados',
-              style: TextStyle(
+            Text(
+              l10n.recommendedProducts,
+              style: const TextStyle(
                 color: AppTheme.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -295,16 +299,16 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
             SizedBox(
               width: double.infinity,
               child: SegmentedButton<int>(
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: 0,
-                    label: Text('Rotina (Casa)'),
-                    icon: Icon(Icons.home_outlined),
+                    label: Text(l10n.routineHome),
+                    icon: const Icon(Icons.home_outlined),
                   ),
                   ButtonSegment(
                     value: 1,
-                    label: Text('Tratamento (Clínica)'),
-                    icon: Icon(Icons.medical_services_outlined),
+                    label: Text(l10n.treatmentClinic),
+                    icon: const Icon(Icons.medical_services_outlined),
                   ),
                 ],
                 selected: {_selectedTab},
@@ -341,8 +345,8 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
                       padding: const EdgeInsets.all(24.0),
                       child: Text(
                         isInternalView
-                            ? 'Nenhum tratamento clínico recomendado.'
-                            : 'Nenhum produto de rotina recomendado.',
+                            ? l10n.noClinicRecommended
+                            : l10n.noHomeRecommended,
                         style: const TextStyle(color: AppTheme.textMuted),
                       ),
                     ),

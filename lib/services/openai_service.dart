@@ -205,6 +205,65 @@ Analise o rapport completo (incluindo imagens e gráficos) e recomende os melhor
     return AnalysisResult.fromGptResponse('PDF Rapport: $pdfFilePath', gptJson);
   }
 
+  /// Analyze a product image and return structured fields in French (FR)
+  Future<Map<String, dynamic>> analyzeProductImage(String base64Image) async {
+    final systemPrompt = '''
+You are an expert aesthetic product analyzer. 
+Analyze the provided product image (bottle, tube, packaging, or label) and extract its details.
+ALL TEXT FIELDS (name, brand, description, ingredients, product_attribute, usage_method) MUST BE WRITTEN IN FRENCH (FR), even if the packaging is in another language!
+
+Return EXCLUSIVELY a valid JSON object with the following structure:
+{
+  "name": "Product name in French (clear, without brand prefix if redundant)",
+  "brand": "Brand name",
+  "description": "A beautiful and concise commercial description of the product in French (approx 2-3 sentences)",
+  "category": "One of these EXACT Portuguese categories based on the product type: Limpeza|Tónico|Sérum|Hidratante|Protetor Solar|Esfoliante|Máscara|Contorno de Olhos|Tratamento|Suplemento",
+  "ingredients": "Key ingredients or full list, in French or as written on package",
+  "product_attribute": "Key product benefits or attributes in French (e.g. Anti-âge, Hydratation intense, Éclat)",
+  "usage_method": "How to use in French (extremely concise, MAXIMUM 40 characters!)",
+  "applicable_gender": "One of: 01-Masculino|02-Feminino|03-Unissexo",
+  "application_skin": "One of: Boa|Média|Geral|Fraca|Grave (Choose 'Geral' as a default if not specific)",
+  "indicator_correlation": ["Choose relevant indicators from this list: Poros|Porfirina|Acne|Sebo|Poro Entupido|Pigmento Epidérmico|Pigmento Dérmico|Área Castanha|Dano UV|Melasma|Área Sensível|Vasos Capilares|Térmica|Borbulha|Ruga|Textura|Hidratação|Colágenio"],
+  "applicable_crowd": ["Choose relevant age groups from this list: 01-Jovem|02-Adulto Jovem|03-Meia-Idade|04-Sénior|05-Todos"],
+  "skin_types": ["Choose matching skin types from this list: Normal|Oleosa|Seca|Mista|Sensível"]
+}
+
+Important Rules:
+1. "usage_method" must be under 40 characters including spaces.
+2. "category", "applicable_gender", "application_skin", "indicator_correlation", "applicable_crowd", and "skin_types" must use the exact values listed above (which are in Portuguese to match the database).
+3. All free text fields must be returned in professional French.
+4. Do not include markdown formatting or wrapping around JSON, return ONLY the raw JSON string.
+''';
+
+    final chatCompletion = await OpenAI.instance.chat.create(
+      model: 'gpt-4o',
+      responseFormat: {"type": "json_object"},
+      messages: [
+        OpenAIChatCompletionChoiceMessageModel(
+          role: OpenAIChatMessageRole.system,
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(systemPrompt),
+          ],
+        ),
+        OpenAIChatCompletionChoiceMessageModel(
+          role: OpenAIChatMessageRole.user,
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.imageUrl(
+              'data:image/jpeg;base64,$base64Image',
+            ),
+          ],
+        ),
+      ],
+      temperature: 0.2,
+      maxTokens: 1000,
+    );
+
+    final responseContent =
+        chatCompletion.choices.first.message.content?.first.text ?? '{}';
+
+    return jsonDecode(responseContent) as Map<String, dynamic>;
+  }
+
   /// Simple text extraction from image (if rapport is an image)
   Future<String> extractTextFromImage(String base64Image) async {
     final chatCompletion = await OpenAI.instance.chat.create(

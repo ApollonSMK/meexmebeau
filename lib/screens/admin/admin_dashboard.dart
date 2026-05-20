@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
+import '../../config/l10n.dart';
 import '../../providers/providers.dart';
 
 class AdminDashboard extends ConsumerWidget {
@@ -10,10 +11,11 @@ class AdminDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(adminStatsProvider);
+    final l10n = AppL10n.of(context, ref);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Painel Admin'),
+        title: Text(l10n.t('Painel Admin', 'Panneau Admin')),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -26,7 +28,7 @@ class AdminDashboard extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: _statCard(
-                      'Produtos',
+                      l10n.products,
                       '${s.productCount}',
                       Icons.spa_outlined,
                       AppTheme.primaryPurple,
@@ -35,7 +37,7 @@ class AdminDashboard extends ConsumerWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _statCard(
-                      'Análises',
+                      l10n.t('Análises', 'Analyses'),
                       '${s.analysisCount}',
                       Icons.analytics_outlined,
                       AppTheme.accentPink,
@@ -48,9 +50,9 @@ class AdminDashboard extends ConsumerWidget {
             ),
             const SizedBox(height: 32),
 
-            const Text(
-              'Gestão',
-              style: TextStyle(
+            Text(
+              l10n.t('Gestão', 'Gestion'),
+              style: const TextStyle(
                 color: AppTheme.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -60,24 +62,24 @@ class AdminDashboard extends ConsumerWidget {
 
             _menuItem(
               context,
-              'Gerir Produtos',
-              'Adicionar, editar e remover',
+              l10n.manageProducts,
+              l10n.t('Adicionar, editar e remover', 'Ajouter, modifier et supprimer'),
               Icons.spa_outlined,
               () => context.push('/admin/products'),
             ),
             const SizedBox(height: 8),
             _menuItem(
               context,
-              'Ver Análises',
-              'Histórico de todas as análises',
+              l10n.t('Ver Análises', 'Voir les Analyses'),
+              l10n.t('Histórico de todas as análises', 'Historique de toutes les analyses'),
               Icons.history,
               () => context.push('/history'),
             ),
             const SizedBox(height: 8),
             _menuItem(
               context,
-              'Ver Catálogo',
-              'Como os utilizadores veem',
+              l10n.t('Ver Catálogo', 'Voir le Catalogue'),
+              l10n.t('Como os utilizadores veem', 'Comment les utilisateurs le voient'),
               Icons.visibility_outlined,
               () => context.push('/products'),
             ),

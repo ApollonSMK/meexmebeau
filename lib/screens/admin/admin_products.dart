@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
+import '../../config/l10n.dart';
 import '../../providers/providers.dart';
 import '../../models/product.dart';
 
@@ -11,37 +12,38 @@ class AdminProductsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final products = ref.watch(allProductsProvider);
+    final l10n = AppL10n.of(context, ref);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Gerir Produtos')),
+      appBar: AppBar(title: Text(l10n.manageProducts)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/admin/products/new'),
         icon: const Icon(Icons.add),
-        label: const Text('Novo Produto'),
+        label: Text(l10n.newProduct),
       ),
       body: products.when(
         data: (list) {
           if (list.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.inventory_2_outlined,
                     size: 64,
                     color: AppTheme.textMuted,
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Text(
-                    'Nenhum produto',
-                    style: TextStyle(
+                    l10n.t('Nenhum produto', 'Aucun produit'),
+                    style: const TextStyle(
                       color: AppTheme.textSecondary,
                       fontSize: 16,
                     ),
                   ),
                   Text(
-                    'Toca no + para adicionar',
-                    style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    l10n.t('Toca no + para adicionar', 'Appuyez sur + pour ajouter'),
+                    style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
                   ),
                 ],
               ),
@@ -59,12 +61,13 @@ class AdminProductsScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, _) => Center(child: Text('${l10n.t('Erro', 'Erreur')}: $e')),
       ),
     );
   }
 
   Widget _productRow(BuildContext context, WidgetRef ref, Product product) {
+    final l10n = AppL10n.of(context, ref);
     return Dismissible(
       key: Key(product.id),
       direction: DismissDirection.endToStart,
@@ -81,20 +84,20 @@ class AdminProductsScreen extends ConsumerWidget {
         return await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Eliminar Produto?'),
+            title: Text(l10n.t('Eliminar Produto?', 'Supprimer le Produit ?')),
             content: Text(
-              'Tens a certeza que queres eliminar "${product.name}"?',
+              '${l10n.t('Tens a certeza que queres eliminar', 'Êtes-vous sûr de vouloir supprimer')} "${product.name}"?',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancelar'),
+                child: Text(l10n.cancel),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text(
-                  'Eliminar',
-                  style: TextStyle(color: AppTheme.error),
+                child: Text(
+                  l10n.delete,
+                  style: const TextStyle(color: AppTheme.error),
                 ),
               ),
             ],
@@ -165,9 +168,9 @@ class AdminProductsScreen extends ConsumerWidget {
                               color: AppTheme.error.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text(
-                              'INATIVO',
-                              style: TextStyle(
+                            child: Text(
+                              l10n.t('INATIVO', 'INACTIF'),
+                              style: const TextStyle(
                                 color: AppTheme.error,
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
@@ -177,7 +180,7 @@ class AdminProductsScreen extends ConsumerWidget {
                       ],
                     ),
                     Text(
-                      '${product.category} ${product.brand != null ? "• ${product.brand}" : ""}',
+                      '${l10n.translateCategory(product.category)} ${product.brand != null ? "• ${product.brand}" : ""}',
                       style: const TextStyle(
                         color: AppTheme.textMuted,
                         fontSize: 12,

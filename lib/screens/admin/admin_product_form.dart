@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../config/theme.dart';
 import '../../config/constants.dart';
+import '../../config/l10n.dart';
 import '../../providers/providers.dart';
 import '../../models/product.dart';
 import '../../widgets/gradient_button.dart';
@@ -19,6 +21,7 @@ class AdminProductForm extends ConsumerStatefulWidget {
 
 class _AdminProductFormState extends ConsumerState<AdminProductForm> {
   final _formKey = GlobalKey<FormState>();
+  bool _aiLoading = false;
 
   // Controladores de texto
   final _nomeController = TextEditingController();
@@ -85,6 +88,84 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
     }
   }
 
+  Future<void> _preencherComIA() async {
+    final l10n = AppL10n.of(context, ref);
+    if (_imagemLocal == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.aiFillNoImage)),
+      );
+      return;
+    }
+
+    setState(() => _aiLoading = true);
+
+    try {
+      final bytes = await _imagemLocal!.readAsBytes();
+      final base64Image = base64Encode(bytes);
+      final openAI = ref.read(openAIServiceProvider);
+
+      final data = await openAI.analyzeProductImage(base64Image);
+
+      if (mounted) {
+        setState(() {
+          if (data['name'] != null) _nomeController.text = data['name'].toString();
+          if (data['brand'] != null) _marcaController.text = data['brand'].toString();
+          if (data['description'] != null) _descricaoController.text = data['description'].toString();
+          if (data['ingredients'] != null) _ingredientesController.text = data['ingredients'].toString();
+          if (data['product_attribute'] != null) _atributoController.text = data['product_attribute'].toString();
+          if (data['usage_method'] != null) {
+            String usage = data['usage_method'].toString();
+            if (usage.length > 40) {
+              usage = usage.substring(0, 40);
+            }
+            _modoUsoController.text = usage;
+          }
+          if (data['category'] != null && AppConstants.productCategories.contains(data['category'])) {
+            _categoria = data['category'].toString();
+          }
+          if (data['applicable_gender'] != null && AppConstants.genderOptions.contains(data['applicable_gender'])) {
+            _genero = data['applicable_gender'].toString();
+          }
+          if (data['application_skin'] != null && AppConstants.skinConditionOptions.contains(data['application_skin'])) {
+            _condicaoPele = data['application_skin'].toString();
+          }
+          if (data['indicator_correlation'] != null) {
+            _indicadores = (data['indicator_correlation'] as List)
+                .map((e) => e.toString())
+                .where((e) => AppConstants.indicatorOptions.contains(e))
+                .toList();
+          }
+          if (data['applicable_crowd'] != null) {
+            _publicoAlvo = (data['applicable_crowd'] as List)
+                .map((e) => e.toString())
+                .where((e) => AppConstants.crowdOptions.contains(e))
+                .toList();
+          }
+          if (data['skin_types'] != null) {
+            _tiposPele = (data['skin_types'] as List)
+                .map((e) => e.toString())
+                .where((e) => AppConstants.skinTypes.contains(e))
+                .toList();
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.aiFillSuccess)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${l10n.aiFillError}$e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _aiLoading = false);
+      }
+    }
+  }
+
   @override
   void dispose() {
     _nomeController.dispose();
@@ -100,6 +181,7 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
   }
 
   Future<void> _escolherImagem() async {
+    final l10n = AppL10n.of(context, ref);
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: AppTheme.bgCard,
@@ -121,9 +203,9 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const Text(
-                'Adicionar Foto',
-                style: TextStyle(
+              Text(
+                l10n.imageSection,
+                style: const TextStyle(
                   color: AppTheme.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -139,13 +221,13 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
                   ),
                   child: const Icon(Icons.camera_alt, color: Colors.white, size: 22),
                 ),
-                title: const Text(
-                  'Tirar Foto',
-                  style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+                title: Text(
+                  l10n.t('Tirar Foto', 'Prendre une Photo'),
+                  style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
                 ),
-                subtitle: const Text(
-                  'Usa a câmara agora',
-                  style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                subtitle: Text(
+                  l10n.t('Usa a câmara agora', 'Utiliser l\'appareil photo'),
+                  style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
                 ),
                 onTap: () => Navigator.pop(context, ImageSource.camera),
               ),
@@ -159,13 +241,13 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
                   ),
                   child: const Icon(Icons.photo_library, color: AppTheme.accentPinkLight, size: 22),
                 ),
-                title: const Text(
-                  'Escolher da Galeria',
-                  style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+                title: Text(
+                  l10n.t('Escolher da Galeria', 'Choisir dans la Galerie'),
+                  style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
                 ),
-                subtitle: const Text(
-                  'Seleciona uma foto existente',
-                  style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                subtitle: Text(
+                  l10n.t('Seleciona uma foto existente', 'Sélectionner une photo existante'),
+                  style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
                 ),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
@@ -193,6 +275,7 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
   Future<String?> _uploadImagem() async {
     if (_imagemLocal == null) return _imagemUrlExistente;
 
+    final l10n = AppL10n.of(context, ref);
     setState(() => _uploadingImage = true);
     try {
       final bytes = await _imagemLocal!.readAsBytes();
@@ -204,7 +287,11 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar imagem: $e')),
+          SnackBar(
+            content: Text(
+              l10n.t('Erro ao carregar imagem: $e', 'Erreur lors du chargement de l\'image : $e'),
+            ),
+          ),
         );
       }
       return _imagemUrlExistente;
@@ -217,6 +304,7 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
 
+    final l10n = AppL10n.of(context, ref);
     try {
       // Upload imagem primeiro (se houver)
       final imageUrl = await _uploadImagem();
@@ -273,15 +361,24 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isEdit ? 'Produto atualizado!' : 'Produto criado!'),
+            content: Text(
+              _isEdit
+                  ? l10n.t('Produto atualizado!', 'Produit mis à jour !')
+                  : l10n.t('Produto criado!', 'Produit créé !'),
+            ),
           ),
         );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Erro: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n.t('Erro: $e', 'Erreur : $e'),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -290,300 +387,353 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEdit ? 'Editar Produto' : 'Novo Produto'),
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            // ── FOTO DO PRODUTO ─────────────────────────────
-            _sectionHeader('Foto do Produto', Icons.photo_camera_outlined),
-            const SizedBox(height: 12),
-            _buildImagePicker(),
-            const SizedBox(height: 20),
-
-            // ── INFORMAÇÕES BÁSICAS ──────────────────────────
-            _sectionHeader('Informações Básicas', Icons.inventory_2_outlined),
-            const SizedBox(height: 12),
-
-            _campo('Marca', _marcaController),
-            const SizedBox(height: 14),
-
-            _campo(
-              'Nome do Produto *',
-              _nomeController,
-              validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null,
-            ),
-            const SizedBox(height: 14),
-
-            Row(
+    final l10n = AppL10n.of(context, ref);
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            title: Text(_isEdit ? l10n.editProduct : l10n.newProduct),
+          ),
+          body: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(20),
               children: [
-                Expanded(
-                  child: _campo(
-                    'Preço (€) *',
-                    _precoController,
-                    teclado: TextInputType.number,
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Obrigatório' : null,
+                // ── FOTO DO PRODUTO ─────────────────────────────
+                _sectionHeader(l10n.imageSection, Icons.photo_camera_outlined),
+                const SizedBox(height: 12),
+                _buildImagePicker(),
+                
+                // Botão Preencher com IA
+                if (_imagemLocal != null) ...[
+                  const SizedBox(height: 12),
+                  GradientButton(
+                    text: l10n.fillWithAi,
+                    icon: Icons.auto_awesome,
+                    onPressed: _preencherComIA,
+                    isLoading: _aiLoading,
                   ),
+                ],
+                const SizedBox(height: 20),
+
+                // ── INFORMAÇÕES BÁSICAS ──────────────────────────
+                _sectionHeader(l10n.basicInfo, Icons.inventory_2_outlined),
+                const SizedBox(height: 12),
+
+                _campo(l10n.fieldBrand, _marcaController),
+                const SizedBox(height: 14),
+
+                _campo(
+                  l10n.fieldName,
+                  _nomeController,
+                  validator: (v) => v == null || v.isEmpty ? l10n.requiredField : null,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _campo(
-                    'Preço Especial (€)',
-                    _precoEspecialController,
-                    teclado: TextInputType.number,
+                const SizedBox(height: 14),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _campo(
+                        l10n.fieldPrice,
+                        _precoController,
+                        teclado: TextInputType.number,
+                        validator: (v) =>
+                            v == null || v.isEmpty ? l10n.requiredField : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _campo(
+                        l10n.fieldSpecialPrice,
+                        _precoEspecialController,
+                        teclado: TextInputType.number,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                _campo(l10n.fieldWebsite, _websiteController, teclado: TextInputType.url),
+                const SizedBox(height: 20),
+
+                // ── CATEGORIA ────────────────────────────────────
+                _sectionHeader(l10n.fieldCategory, Icons.category_outlined),
+                const SizedBox(height: 12),
+                _dropdown<String>(
+                  label: l10n.fieldCategory,
+                  value: _categoria,
+                  items: AppConstants.productCategories,
+                  onChanged: (v) => setState(() => _categoria = v!),
+                ),
+                const SizedBox(height: 20),
+
+                // ── GÉNERO ───────────────────────────────────────
+                _sectionHeader(l10n.fieldGender, Icons.people_outline),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: AppConstants.genderOptions.map((g) {
+                    final sel = _genero == g;
+                    return ChoiceChip(
+                      label: Text(l10n.translateGender(g)),
+                      selected: sel,
+                      onSelected: (_) => setState(() => _genero = g),
+                      selectedColor: AppTheme.primaryPurple.withValues(alpha: 0.3),
+                      checkmarkColor: AppTheme.primaryPurpleLight,
+                      labelStyle: TextStyle(
+                        color: sel
+                            ? AppTheme.primaryPurpleLight
+                            : AppTheme.textSecondary,
+                        fontSize: 13,
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+
+                // ── CONDIÇÃO DE PELE ─────────────────────────────
+                _sectionHeader(l10n.fieldSkinCondition,
+                    Icons.face_retouching_natural),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: AppConstants.skinConditionOptions.map((s) {
+                    final sel = _condicaoPele == s;
+                    final cor = _corCondicao(s);
+                    return ChoiceChip(
+                      label: Text(l10n.translateSkinCondition(s)),
+                      selected: sel,
+                      onSelected: (_) => setState(() => _condicaoPele = s),
+                      selectedColor: cor.withValues(alpha: 0.25),
+                      checkmarkColor: cor,
+                      labelStyle: TextStyle(
+                        color: sel ? cor : AppTheme.textSecondary,
+                        fontWeight:
+                            sel ? FontWeight.w600 : FontWeight.normal,
+                        fontSize: 13,
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+
+                // ── INDICADORES ──────────────────────────────────
+                _sectionHeader(
+                    l10n.fieldIndicators, Icons.bar_chart_rounded),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.indicatorsTip,
+                  style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: AppConstants.indicatorOptions.map((ind) {
+                    final sel = _indicadores.contains(ind);
+                    return FilterChip(
+                      label: Text(l10n.translateIndicator(ind)),
+                      selected: sel,
+                      onSelected: (s) => setState(
+                          () => s ? _indicadores.add(ind) : _indicadores.remove(ind)),
+                      selectedColor: AppTheme.accentPink.withValues(alpha: 0.2),
+                      checkmarkColor: AppTheme.accentPinkLight,
+                      labelStyle: TextStyle(
+                        color:
+                            sel ? AppTheme.accentPinkLight : AppTheme.textSecondary,
+                        fontSize: 12,
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+
+                // ── PÚBLICO-ALVO ─────────────────────────────────
+                _sectionHeader(l10n.fieldCrowd, Icons.groups_outlined),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: AppConstants.crowdOptions.map((crowd) {
+                    final sel = _publicoAlvo.contains(crowd);
+                    return FilterChip(
+                      label: Text(l10n.translateCrowd(crowd)),
+                      selected: sel,
+                      onSelected: (s) => setState(() =>
+                          s ? _publicoAlvo.add(crowd) : _publicoAlvo.remove(crowd)),
+                      selectedColor:
+                          AppTheme.primaryPurple.withValues(alpha: 0.25),
+                      checkmarkColor: AppTheme.primaryPurpleLight,
+                      labelStyle: TextStyle(
+                        color: sel
+                            ? AppTheme.primaryPurpleLight
+                            : AppTheme.textSecondary,
+                        fontSize: 13,
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+
+                // ── DETALHES ─────────────────────────────────────
+                _sectionHeader(l10n.fieldDetails, Icons.description_outlined),
+                const SizedBox(height: 12),
+
+                _campo(l10n.fieldAttribute, _atributoController),
+                const SizedBox(height: 14),
+
+                // Modo de uso com contador
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.fieldUsageMethod,
+                      style:
+                          const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _modoUsoController,
+                      maxLength: 40,
+                      style: const TextStyle(
+                          color: AppTheme.textPrimary, fontSize: 14),
+                      decoration: const InputDecoration(counterText: ''),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ValueListenableBuilder(
+                        valueListenable: _modoUsoController,
+                        builder: (ctx, val, child) => Text(
+                          '${val.text.length}/40',
+                          style: TextStyle(
+                            color: val.text.length > 40
+                                ? AppTheme.error
+                                : AppTheme.textMuted,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                _campo(l10n.fieldDescription, _descricaoController, maxLines: 3),
+                const SizedBox(height: 14),
+
+                _campo(l10n.fieldIngredients, _ingredientesController, maxLines: 3),
+                const SizedBox(height: 20),
+
+                // ── TIPOS DE PELE (IA) ───────────────────────────
+                _sectionHeader(
+                    l10n.fieldSkinTypes, Icons.spa_outlined),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: AppConstants.skinTypes
+                      .map((t) => FilterChip(
+                            label: Text(l10n.translateSkinType(t)),
+                            selected: _tiposPele.contains(t),
+                            onSelected: (s) => setState(() =>
+                                s ? _tiposPele.add(t) : _tiposPele.remove(t)),
+                            selectedColor:
+                                AppTheme.primaryPurple.withValues(alpha: 0.3),
+                            checkmarkColor: AppTheme.primaryPurpleLight,
+                          ))
+                      .toList(),
+                ),
+                const SizedBox(height: 20),
+
+                // ── ESTADO ───────────────────────────────────────
+                _sectionHeader(l10n.fieldAvailability, Icons.toggle_on_outlined),
+                SwitchListTile(
+                  value: _isInternal,
+                  title: Text(
+                    l10n.fieldIsInternal,
+                    style: const TextStyle(color: AppTheme.textPrimary),
                   ),
+                  subtitle: Text(
+                    l10n.fieldIsInternalSub,
+                    style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                  ),
+                  activeThumbColor: AppTheme.primaryPurple,
+                  onChanged: (v) => setState(() => _isInternal = v),
+                  contentPadding: EdgeInsets.zero,
                 ),
+                SwitchListTile(
+                  value: _ativo,
+                  title: Text(
+                    l10n.fieldIsActive,
+                    style: const TextStyle(color: AppTheme.textPrimary),
+                  ),
+                  subtitle: Text(
+                    l10n.fieldIsActiveSub,
+                    style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                  ),
+                  activeThumbColor: AppTheme.success,
+                  onChanged: (v) => setState(() => _ativo = v),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const SizedBox(height: 28),
+
+                GradientButton(
+                  text: _isEdit ? l10n.saveChanges : l10n.createProduct,
+                  icon: Icons.save,
+                  isLoading: _loading || _uploadingImage,
+                  onPressed: _guardar,
+                ),
+                const SizedBox(height: 40),
               ],
             ),
-            const SizedBox(height: 14),
-
-            _campo('Website', _websiteController, teclado: TextInputType.url),
-            const SizedBox(height: 20),
-
-            // ── CATEGORIA ────────────────────────────────────
-            _sectionHeader('Categoria', Icons.category_outlined),
-            const SizedBox(height: 12),
-            _dropdown<String>(
-              label: 'Categoria *',
-              value: _categoria,
-              items: AppConstants.productCategories,
-              onChanged: (v) => setState(() => _categoria = v!),
-            ),
-            const SizedBox(height: 20),
-
-            // ── GÉNERO ───────────────────────────────────────
-            _sectionHeader('Género Aplicável *', Icons.people_outline),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: AppConstants.genderOptions.map((g) {
-                final sel = _genero == g;
-                return ChoiceChip(
-                  label: Text(g),
-                  selected: sel,
-                  onSelected: (_) => setState(() => _genero = g),
-                  selectedColor: AppTheme.primaryPurple.withValues(alpha: 0.3),
-                  checkmarkColor: AppTheme.primaryPurpleLight,
-                  labelStyle: TextStyle(
-                    color: sel
-                        ? AppTheme.primaryPurpleLight
-                        : AppTheme.textSecondary,
-                    fontSize: 13,
+          ),
+        ),
+        if (_aiLoading)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black54,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  margin: const EdgeInsets.symmetric(horizontal: 40),
+                  decoration: BoxDecoration(
+                    color: AppTheme.bgElevated,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.2)),
                   ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-
-            // ── CONDIÇÃO DE PELE ─────────────────────────────
-            _sectionHeader('Condição de Pele Aplicável *',
-                Icons.face_retouching_natural),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: AppConstants.skinConditionOptions.map((s) {
-                final sel = _condicaoPele == s;
-                final cor = _corCondicao(s);
-                return ChoiceChip(
-                  label: Text(s),
-                  selected: sel,
-                  onSelected: (_) => setState(() => _condicaoPele = s),
-                  selectedColor: cor.withValues(alpha: 0.25),
-                  checkmarkColor: cor,
-                  labelStyle: TextStyle(
-                    color: sel ? cor : AppTheme.textSecondary,
-                    fontWeight:
-                        sel ? FontWeight.w600 : FontWeight.normal,
-                    fontSize: 13,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-
-            // ── INDICADORES ──────────────────────────────────
-            _sectionHeader(
-                'Indicadores Correlacionados *', Icons.bar_chart_rounded),
-            const SizedBox(height: 4),
-            const Text(
-              'Seleciona os parâmetros medidos pelo dispositivo',
-              style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: AppConstants.indicatorOptions.map((ind) {
-                final sel = _indicadores.contains(ind);
-                return FilterChip(
-                  label: Text(ind),
-                  selected: sel,
-                  onSelected: (s) => setState(
-                      () => s ? _indicadores.add(ind) : _indicadores.remove(ind)),
-                  selectedColor: AppTheme.accentPink.withValues(alpha: 0.2),
-                  checkmarkColor: AppTheme.accentPinkLight,
-                  labelStyle: TextStyle(
-                    color:
-                        sel ? AppTheme.accentPinkLight : AppTheme.textSecondary,
-                    fontSize: 12,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-
-            // ── PÚBLICO-ALVO ─────────────────────────────────
-            _sectionHeader('Público-Alvo *', Icons.groups_outlined),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: AppConstants.crowdOptions.map((crowd) {
-                final sel = _publicoAlvo.contains(crowd);
-                return FilterChip(
-                  label: Text(crowd),
-                  selected: sel,
-                  onSelected: (s) => setState(() =>
-                      s ? _publicoAlvo.add(crowd) : _publicoAlvo.remove(crowd)),
-                  selectedColor:
-                      AppTheme.primaryPurple.withValues(alpha: 0.25),
-                  checkmarkColor: AppTheme.primaryPurpleLight,
-                  labelStyle: TextStyle(
-                    color: sel
-                        ? AppTheme.primaryPurpleLight
-                        : AppTheme.textSecondary,
-                    fontSize: 13,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-
-            // ── DETALHES ─────────────────────────────────────
-            _sectionHeader('Detalhes do Produto', Icons.description_outlined),
-            const SizedBox(height: 12),
-
-            _campo('Atributo do Produto', _atributoController),
-            const SizedBox(height: 14),
-
-            // Modo de uso com contador
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Modo de Utilização (máx. 40 caracteres)',
-                  style:
-                      TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _modoUsoController,
-                  maxLength: 40,
-                  style: const TextStyle(
-                      color: AppTheme.textPrimary, fontSize: 14),
-                  decoration: const InputDecoration(counterText: ''),
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ValueListenableBuilder(
-                    valueListenable: _modoUsoController,
-                    builder: (ctx, val, child) => Text(
-                      '${val.text.length}/40',
-                      style: TextStyle(
-                        color: val.text.length > 40
-                            ? AppTheme.error
-                            : AppTheme.textMuted,
-                        fontSize: 11,
-                      ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryPurple),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          l10n.aiFillAnalyzing,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 14),
-
-            _campo('Descrição', _descricaoController, maxLines: 3),
-            const SizedBox(height: 14),
-
-            _campo('Ingredientes', _ingredientesController, maxLines: 3),
-            const SizedBox(height: 20),
-
-            // ── TIPOS DE PELE (IA) ───────────────────────────
-            _sectionHeader(
-                'Tipos de Pele (para IA)', Icons.spa_outlined),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: AppConstants.skinTypes
-                  .map((t) => FilterChip(
-                        label: Text(t),
-                        selected: _tiposPele.contains(t),
-                        onSelected: (s) => setState(() =>
-                            s ? _tiposPele.add(t) : _tiposPele.remove(t)),
-                        selectedColor:
-                            AppTheme.primaryPurple.withValues(alpha: 0.3),
-                        checkmarkColor: AppTheme.primaryPurpleLight,
-                      ))
-                  .toList(),
-            ),
-            const SizedBox(height: 20),
-
-            // ── ESTADO ───────────────────────────────────────
-            _sectionHeader('Estado & Disponibilidade', Icons.toggle_on_outlined),
-            SwitchListTile(
-              value: _isInternal,
-              title: const Text(
-                'Produto Interno (Apenas Clínica)',
-                style: TextStyle(color: AppTheme.textPrimary),
               ),
-              subtitle: const Text(
-                'Recomendado como tratamento em clínica',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
-              ),
-              activeColor: AppTheme.primaryPurple,
-              onChanged: (v) => setState(() => _isInternal = v),
-              contentPadding: EdgeInsets.zero,
             ),
-            SwitchListTile(
-              value: _ativo,
-              title: const Text(
-                'Produto ativo',
-                style: TextStyle(color: AppTheme.textPrimary),
-              ),
-              subtitle: const Text(
-                'Produtos inativos não aparecem no catálogo',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
-              ),
-              activeThumbColor: AppTheme.success,
-              onChanged: (v) => setState(() => _ativo = v),
-              contentPadding: EdgeInsets.zero,
-            ),
-            const SizedBox(height: 28),
-
-            GradientButton(
-              text: _isEdit ? 'Guardar Alterações' : 'Criar Produto',
-              icon: Icons.save,
-              isLoading: _loading || _uploadingImage,
-              onPressed: _guardar,
-            ),
-            const SizedBox(height: 40),
-          ],
-        ),
-      ),
+          ),
+      ],
     );
   }
 
-  // ── Widget de upload de imagem ────────────────────────────────
-
   Widget _buildImagePicker() {
+    final l10n = AppL10n.of(context, ref);
     final hasImage = _imagemLocal != null || _imagemUrlExistente != null;
 
     return GestureDetector(
@@ -618,13 +768,13 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
                           color: Colors.black54,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.edit, color: Colors.white, size: 13),
-                            SizedBox(width: 4),
-                            Text('Alterar',
-                                style: TextStyle(
+                            const Icon(Icons.edit, color: Colors.white, size: 13),
+                            const SizedBox(width: 4),
+                            Text(l10n.imageChange,
+                                style: const TextStyle(
                                     color: Colors.white, fontSize: 12)),
                           ],
                         ),
@@ -647,13 +797,13 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
                               color: Colors.black54,
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.edit, color: Colors.white, size: 13),
-                                SizedBox(width: 4),
-                                Text('Alterar',
-                                    style: TextStyle(
+                                const Icon(Icons.edit, color: Colors.white, size: 13),
+                                const SizedBox(width: 4),
+                                Text(l10n.imageChange,
+                                    style: const TextStyle(
                                         color: Colors.white, fontSize: 12)),
                               ],
                             ),
@@ -674,17 +824,17 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
                               color: Colors.white, size: 28),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
-                          'Toca para adicionar foto',
-                          style: TextStyle(
+                        Text(
+                          l10n.imageTapTip,
+                          style: const TextStyle(
                               color: AppTheme.textPrimary,
                               fontSize: 14,
                               fontWeight: FontWeight.w500),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'JPG ou PNG • Tamanho recomendado: 551×421',
-                          style: TextStyle(
+                        Text(
+                          l10n.imageSpecsTip,
+                          style: const TextStyle(
                               color: AppTheme.textMuted, fontSize: 11),
                         ),
                       ],
@@ -693,8 +843,6 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
       ),
     );
   }
-
-  // ── Helpers ──────────────────────────────────────────────────
 
   Color _corCondicao(String cond) {
     switch (cond) {
@@ -772,6 +920,7 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
     required List<T> items,
     required ValueChanged<T?> onChanged,
   }) {
+    final l10n = AppL10n.of(context, ref);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -785,8 +934,10 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
           dropdownColor: AppTheme.bgElevated,
           style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
           items: items
-              .map((c) =>
-                  DropdownMenuItem(value: c, child: Text(c.toString())))
+              .map((c) => DropdownMenuItem(
+                    value: c,
+                    child: Text(c is String ? l10n.translateCategory(c) : c.toString()),
+                  ))
               .toList(),
           onChanged: onChanged,
         ),

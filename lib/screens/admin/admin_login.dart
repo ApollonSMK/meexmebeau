@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
+import '../../config/l10n.dart';
 import '../../providers/providers.dart';
 import '../../widgets/gradient_button.dart';
 
@@ -26,6 +27,7 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
   }
 
   Future<void> _login() async {
+    final l10n = AppL10n.of(context, ref);
     setState(() {
       _loading = true;
       _error = null;
@@ -39,20 +41,22 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
       if (mounted) context.go('/admin');
     } catch (e) {
       setState(() {
-        _error = 'Credenciais inválidas';
+        _error = l10n.t('Credenciais inválidas', 'Identifiants invalides');
       });
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
         });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppL10n.of(context, ref);
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin')),
+      appBar: AppBar(title: Text(l10n.t('Admin', 'Admin'))),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
@@ -68,27 +72,27 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Painel Admin',
-                style: TextStyle(
+              Text(
+                l10n.t('Painel Admin', 'Panneau Admin'),
+                style: const TextStyle(
                   color: AppTheme.textPrimary,
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Acesso restrito a administradores',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
+              Text(
+                l10n.t('Acesso restrito a administradores', 'Accès restreint aux administrateurs'),
+                style: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
               ),
               const SizedBox(height: 32),
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 style: const TextStyle(color: AppTheme.textPrimary),
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: Icon(
+                decoration: InputDecoration(
+                  labelText: l10n.email,
+                  prefixIcon: const Icon(
                     Icons.email_outlined,
                     color: AppTheme.textMuted,
                   ),
@@ -99,9 +103,9 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                 controller: _passwordController,
                 obscureText: true,
                 style: const TextStyle(color: AppTheme.textPrimary),
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: Icon(
+                decoration: InputDecoration(
+                  labelText: l10n.password,
+                  prefixIcon: const Icon(
                     Icons.lock_outlined,
                     color: AppTheme.textMuted,
                   ),
@@ -119,7 +123,7 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
               SizedBox(
                 width: double.infinity,
                 child: GradientButton(
-                  text: 'Entrar',
+                  text: l10n.login,
                   isLoading: _loading,
                   onPressed: _login,
                 ),

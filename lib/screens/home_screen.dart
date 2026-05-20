@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:open_file/open_file.dart';
 import '../config/theme.dart';
+import '../config/l10n.dart';
 import '../providers/providers.dart';
 import '../services/update_service.dart';
 import '../widgets/gradient_button.dart';
@@ -58,6 +59,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final analyses = ref.watch(analysesProvider);
     final sharedData = ref.watch(sharedDataProvider);
+    final l10n = AppL10n.of(context, ref);
 
     if (sharedData != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -69,21 +71,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            SliverToBoxAdapter(child: _buildHeader()),
+            SliverToBoxAdapter(child: _buildHeader(l10n)),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _buildHeroCard(),
+                child: _buildHeroCard(l10n),
               ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            SliverToBoxAdapter(child: _buildQuickActions()),
+            SliverToBoxAdapter(child: _buildQuickActions(l10n)),
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
-                  'Análises Recentes',
+                  l10n.recentAnalyses,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
@@ -94,7 +96,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ? SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: _buildEmptyState(),
+                        child: _buildEmptyState(l10n),
                       ),
                     )
                   : SliverList(
@@ -104,7 +106,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             horizontal: 20,
                             vertical: 4,
                           ),
-                          child: _buildAnalysisCard(list[i]),
+                          child: _buildAnalysisCard(list[i], l10n),
                         ).animate().fadeIn(
                               delay: Duration(milliseconds: 500 + i * 100),
                             ),
@@ -117,7 +119,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               error: (_, _) => SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
-                  child: _buildEmptyState(),
+                  child: _buildEmptyState(l10n),
                 ),
               ),
             ),
@@ -126,7 +128,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: GradientButton(
-                  text: 'Enviar Rapport PDF',
+                  text: l10n.sendPdfRapport,
                   icon: Icons.picture_as_pdf,
                   onPressed: _pickAndAnalyzePdf,
                 ),
@@ -139,7 +141,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AppL10n l10n) {
+    final currentLang = ref.watch(languageProvider);
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -149,42 +152,79 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'MEBeauty IA',
+                l10n.appName,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Análise Facial Inteligente',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
+              Text(
+                l10n.appSubtitle,
+                style: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
               ),
             ],
           ),
-          IconButton(
-            onPressed: () => context.push('/admin'),
-            icon: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppTheme.bgCard,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: AppTheme.primarySalmon.withValues(alpha: 0.08)),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  ref.read(languageProvider.notifier).toggle();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.bgCard,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: AppTheme.primarySalmon.withValues(alpha: 0.08)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        currentLang == AppLanguage.fr ? '🇫🇷' : '🇵🇹',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        currentLang == AppLanguage.fr ? 'FR' : 'PT',
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              child: const Icon(
-                Icons.admin_panel_settings_outlined,
-                color: AppTheme.textSecondary,
-                size: 22,
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => context.push('/admin'),
+                icon: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.bgCard,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: AppTheme.primarySalmon.withValues(alpha: 0.08)),
+                  ),
+                  child: const Icon(
+                    Icons.admin_panel_settings_outlined,
+                    color: AppTheme.textSecondary,
+                    size: 22,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHeroCard() {
+  Widget _buildHeroCard(AppL10n l10n) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -213,19 +253,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Como funciona?',
-            style: TextStyle(
+          Text(
+            l10n.howItWorks,
+            style: const TextStyle(
               color: AppTheme.textPrimary,
               fontSize: 20,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 12),
-          _step('1', 'Abre o rapport no app M7'),
-          _step('2', 'Clica em "Compartilhar com"'),
-          _step('3', 'Seleciona MEBeauty IA'),
-          _step('4', 'A IA analisa e recomenda produtos'),
+          _step('1', l10n.step1),
+          _step('2', l10n.step2),
+          _step('3', l10n.step3),
+          _step('4', l10n.step4),
         ],
       ),
     );
@@ -254,16 +294,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            Text(
-              t,
-              style:
-                  const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+            Expanded(
+              child: Text(
+                t,
+                style:
+                    const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+              ),
             ),
           ],
         ),
       );
 
-  Widget _buildQuickActions() {
+  Widget _buildQuickActions(AppL10n l10n) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -271,8 +313,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Expanded(
             child: _actionCard(
               Icons.history,
-              'Histórico',
-              'Análises anteriores',
+              l10n.history,
+              l10n.historySub,
               () => context.push('/history'),
             ),
           ),
@@ -280,8 +322,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Expanded(
             child: _actionCard(
               Icons.spa_outlined,
-              'Produtos',
-              'Ver catálogo',
+              l10n.products,
+              l10n.productsSub,
               () => context.push('/products'),
             ),
           ),
@@ -330,7 +372,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppL10n l10n) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -339,29 +381,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         border: Border.all(
             color: AppTheme.primarySalmon.withValues(alpha: 0.08)),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          Icon(Icons.analytics_outlined, size: 48, color: AppTheme.textMuted),
-          SizedBox(height: 12),
+          const Icon(Icons.analytics_outlined, size: 48, color: AppTheme.textMuted),
+          const SizedBox(height: 12),
           Text(
-            'Nenhuma análise ainda',
-            style: TextStyle(
+            l10n.emptyStateTitle,
+            style: const TextStyle(
               color: AppTheme.textSecondary,
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
-            'Partilha um rapport do M7 para começar',
-            style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+            l10n.emptyStateSub,
+            style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAnalysisCard(dynamic analysis) {
+  Widget _buildAnalysisCard(dynamic analysis, AppL10n l10n) {
     return GestureDetector(
       onTap: () => context.push('/analysis/result/${analysis.id}'),
       child: Container(
@@ -389,7 +431,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Pele ${analysis.skinType}',
+                    '${l10n.skinTypeLabel} ${l10n.translateSkinType(analysis.skinType)}',
                     style: const TextStyle(
                       color: AppTheme.textPrimary,
                       fontSize: 14,
@@ -397,7 +439,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                   Text(
-                    '${analysis.recommendations.length} produtos recomendados',
+                    '${analysis.recommendations.length} ${l10n.analysisCardRecommended}',
                     style: const TextStyle(
                       color: AppTheme.textMuted,
                       fontSize: 12,
@@ -430,15 +472,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 // ── Bottom Sheet de Atualização ────────────────────────────────
 
-class _UpdateBottomSheet extends StatefulWidget {
+class _UpdateBottomSheet extends ConsumerStatefulWidget {
   final UpdateInfo info;
   const _UpdateBottomSheet({required this.info});
 
   @override
-  State<_UpdateBottomSheet> createState() => _UpdateBottomSheetState();
+  ConsumerState<_UpdateBottomSheet> createState() => _UpdateBottomSheetState();
 }
 
-class _UpdateBottomSheetState extends State<_UpdateBottomSheet> {
+class _UpdateBottomSheetState extends ConsumerState<_UpdateBottomSheet> {
   bool _downloading = false;
   double _progress = 0;
   String? _error;
@@ -460,9 +502,10 @@ class _UpdateBottomSheetState extends State<_UpdateBottomSheet> {
     if (!mounted) return;
 
     if (path == null) {
+      final l10n = AppL10n.of(context, ref);
       setState(() {
         _downloading = false;
-        _error = 'Erro ao descarregar. Tenta novamente.';
+        _error = l10n.t('Erro ao descarregar. Tenta novamente.', 'Erreur lors du téléchargement. Réessayez.');
       });
       return;
     }
@@ -482,8 +525,9 @@ class _UpdateBottomSheetState extends State<_UpdateBottomSheet> {
     final file = File(_apkPath!);
     if (!await file.exists()) {
       if (mounted) {
+        final l10n = AppL10n.of(context, ref);
         setState(() {
-          _error = 'Ficheiro não encontrado. Descarrega de novo.';
+          _error = l10n.t('Ficheiro não encontrado. Descarrega de novo.', 'Fichier non trouvé. Téléchargez à nouveau.');
           _apkPath = null;
         });
       }
@@ -492,16 +536,23 @@ class _UpdateBottomSheetState extends State<_UpdateBottomSheet> {
 
     final error = await UpdateService.installApk(_apkPath!);
     if (error != null && mounted) {
+      final l10n = AppL10n.of(context, ref);
       setState(() {
-        _error = 'Não foi possível instalar automaticamente.\n'
-            'Verifica em Definições > Apps > MEBeauty IA > '
-            'Instalar apps desconhecidas e ativa a opção.';
+        _error = l10n.t(
+          'Não foi possível instalar automaticamente.\n'
+              'Verifica em Definições > Apps > MEBeauty IA > '
+              'Instalar apps desconhecidas e ativa a opção.',
+          'Impossible d\'installer automatiquement.\n'
+              'Vérifiez dans Paramètres > Applications > MEBeauty IA > '
+              'Installer des applications inconnues et activez l\'option.',
+        );
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppL10n.of(context, ref);
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
       child: Column(
@@ -537,9 +588,9 @@ class _UpdateBottomSheetState extends State<_UpdateBottomSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Nova versão disponível!',
-                      style: TextStyle(
+                    Text(
+                      l10n.t('Nova versão disponível!', 'Nouvelle version disponible !'),
+                      style: const TextStyle(
                         color: AppTheme.textPrimary,
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
@@ -584,9 +635,9 @@ class _UpdateBottomSheetState extends State<_UpdateBottomSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'A descarregar...',
-                      style: TextStyle(
+                    Text(
+                      l10n.t('A descarregar...', 'Téléchargement...'),
+                      style: const TextStyle(
                           color: AppTheme.textSecondary, fontSize: 13),
                     ),
                     Text(
@@ -628,7 +679,7 @@ class _UpdateBottomSheetState extends State<_UpdateBottomSheet> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.install_mobile),
-                label: const Text('Instalar Agora'),
+                label: Text(l10n.t('Instalar Agora', 'Installer Maintenant')),
                 onPressed: () => OpenFile.open(_apkPath!),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.success,
@@ -654,14 +705,14 @@ class _UpdateBottomSheetState extends State<_UpdateBottomSheet> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Mais tarde'),
+                    child: Text(l10n.t('Mais tarde', 'Plus tard')),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   flex: 2,
                   child: GradientButton(
-                    text: 'Atualizar',
+                    text: l10n.t('Atualizar', 'Mettre à jour'),
                     icon: Icons.download_rounded,
                     onPressed: _download,
                   ),

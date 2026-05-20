@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../config/theme.dart';
+import '../config/l10n.dart';
 import '../providers/providers.dart';
 import '../widgets/skin_metric_gauge.dart';
 import '../widgets/product_card.dart';
@@ -29,25 +30,26 @@ class AnalysisDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(analysisDetailProvider(analysisId));
+    final l10n = AppL10n.of(context, ref);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Resultado'),
+        title: Text(l10n.resultTitle),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
       ),
       body: detail.when(
-        loading: () => const Center(
+        loading: () => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(color: AppTheme.primarySalmon),
-              SizedBox(height: 16),
+              const CircularProgressIndicator(color: AppTheme.primarySalmon),
+              const SizedBox(height: 16),
               Text(
-                'A carregar análise...',
-                style: TextStyle(color: AppTheme.textMuted),
+                l10n.loadingAnalysis,
+                style: const TextStyle(color: AppTheme.textMuted),
               ),
             ],
           ),
@@ -61,7 +63,7 @@ class AnalysisDetailScreen extends ConsumerWidget {
                 const Icon(Icons.error_outline, size: 64, color: AppTheme.error),
                 const SizedBox(height: 16),
                 Text(
-                  'Erro: $e',
+                  '${l10n.t('Erro', 'Erreur')}: $e',
                   style: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
                   textAlign: TextAlign.center,
                 ),
@@ -69,16 +71,18 @@ class AnalysisDetailScreen extends ConsumerWidget {
             ),
           ),
         ),
-        data: (data) => _buildResults(context, data.analysis, data.products),
+        data: (data) => _buildResults(context, ref, data.analysis, data.products),
       ),
     );
   }
 
   Widget _buildResults(
     BuildContext context,
+    WidgetRef ref,
     AnalysisResult result,
     List<Product> products,
   ) {
+    final l10n = AppL10n.of(context, ref);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -97,8 +101,8 @@ class AnalysisDetailScreen extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               [
-                if (result.clientAge != null) 'Idade: ${result.clientAge}',
-                if (result.skinAge != null) 'Idade da Pele: ${result.skinAge}',
+                if (result.clientAge != null) '${l10n.t('Idade', 'Âge')}: ${result.clientAge}',
+                if (result.skinAge != null) '${l10n.t('Idade da Pele', 'Âge de la Peau')}: ${result.skinAge}',
               ].join(' • '),
               style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
             ),
@@ -107,7 +111,7 @@ class AnalysisDetailScreen extends ConsumerWidget {
 
           // Date
           Text(
-            '${result.createdAt.day}/${result.createdAt.month}/${result.createdAt.year} às ${result.createdAt.hour}:${result.createdAt.minute.toString().padLeft(2, '0')}',
+            '${result.createdAt.day}/${result.createdAt.month}/${result.createdAt.year} ${l10n.t('às', 'à')} ${result.createdAt.hour}:${result.createdAt.minute.toString().padLeft(2, '0')}',
             style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
           ),
           const SizedBox(height: 12),
@@ -128,7 +132,7 @@ class AnalysisDetailScreen extends ConsumerWidget {
                     const Icon(Icons.face, color: Colors.white, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      'Pele ${result.skinType}',
+                      '${l10n.t('Pele', 'Peau')} ${l10n.translateSkinType(result.skinType)}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -156,9 +160,9 @@ class AnalysisDetailScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Resumo da Análise',
-                  style: TextStyle(
+                Text(
+                  l10n.analysisSummary,
+                  style: const TextStyle(
                     color: AppTheme.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -179,9 +183,9 @@ class AnalysisDetailScreen extends ConsumerWidget {
           const SizedBox(height: 24),
 
           // Scores
-          const Text(
-            'Scores da Pele',
-            style: TextStyle(
+          Text(
+            l10n.skinScores,
+            style: const TextStyle(
               color: AppTheme.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -193,9 +197,9 @@ class AnalysisDetailScreen extends ConsumerWidget {
 
           // Concerns
           if (result.concerns.isNotEmpty) ...[
-            const Text(
-              'Preocupações Identificadas',
-              style: TextStyle(
+            Text(
+              l10n.identifiedConcerns,
+              style: const TextStyle(
                 color: AppTheme.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -208,7 +212,7 @@ class AnalysisDetailScreen extends ConsumerWidget {
               children: result.concerns
                   .map(
                     (c) => Chip(
-                      label: Text(c),
+                      label: Text(l10n.translateIndicator(c)),
                       avatar: const Icon(
                         Icons.warning_amber,
                         size: 16,
@@ -223,21 +227,21 @@ class AnalysisDetailScreen extends ConsumerWidget {
 
           // Recommendations
           if (products.isNotEmpty) ...[
-            const Text(
-              'Produtos Recomendados',
-              style: TextStyle(
+            Text(
+              l10n.recommendedProducts,
+              style: const TextStyle(
                 color: AppTheme.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Baseado na análise da tua pele',
-              style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+            Text(
+              l10n.basedOnSkinAnalysis,
+              style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
             ),
             const SizedBox(height: 16),
-            _buildProductsList(context, result, products),
+            _buildProductsList(context, ref, result, products),
           ],
 
           // Routine
@@ -260,17 +264,17 @@ class AnalysisDetailScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.auto_awesome,
                         color: AppTheme.primarySalmonLight,
                         size: 20,
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
-                        'Rotina Sugerida',
-                        style: TextStyle(
+                        l10n.suggestedRoutine,
+                        style: const TextStyle(
                           color: AppTheme.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -321,6 +325,7 @@ class AnalysisDetailScreen extends ConsumerWidget {
 
   Widget _buildProductsList(
     BuildContext context,
+    WidgetRef ref,
     AnalysisResult result,
     List<Product> products,
   ) {

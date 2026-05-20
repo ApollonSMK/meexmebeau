@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../config/theme.dart';
+import '../config/l10n.dart';
 import '../providers/providers.dart';
 
 class HistoryScreen extends ConsumerWidget {
@@ -10,28 +11,29 @@ class HistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final analyses = ref.watch(analysesProvider);
+    final l10n = AppL10n.of(context, ref);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Histórico de Análises')),
+      appBar: AppBar(title: Text(l10n.historyTitle)),
       body: analyses.when(
         data: (list) {
           if (list.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.history, size: 64, color: AppTheme.textMuted),
-                  SizedBox(height: 16),
+                  const Icon(Icons.history, size: 64, color: AppTheme.textMuted),
+                  const SizedBox(height: 16),
                   Text(
-                    'Sem histórico',
-                    style: TextStyle(
+                    l10n.t('Sem histórico', 'Aucun historique'),
+                    style: const TextStyle(
                       color: AppTheme.textSecondary,
                       fontSize: 16,
                     ),
                   ),
                   Text(
-                    'As análises feitas aparecerão aqui',
-                    style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    l10n.t('As análises feitas aparecerão aqui', 'Les analyses effectuées apparaîtront ici'),
+                    style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
                   ),
                 ],
               ),
@@ -76,7 +78,7 @@ class HistoryScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              a.clientName ?? 'Pele ${a.skinType}',
+                              a.clientName ?? '${l10n.t('Pele', 'Peau')} ${l10n.translateSkinType(a.skinType)}',
                               style: const TextStyle(
                                 color: AppTheme.textPrimary,
                                 fontSize: 15,
@@ -86,9 +88,9 @@ class HistoryScreen extends ConsumerWidget {
                             const SizedBox(height: 2),
                             Text(
                               [
-                                if (a.clientAge != null) 'Idade: ${a.clientAge}',
-                                if (a.skinAge != null) 'Idade da Pele: ${a.skinAge}',
-                                'Pele ${a.skinType}',
+                                if (a.clientAge != null) '${l10n.t('Idade', 'Âge')}: ${a.clientAge}',
+                                if (a.skinAge != null) '${l10n.t('Idade da Pele', 'Âge de la Peau')}: ${a.skinAge}',
+                                '${l10n.t('Pele', 'Peau')} ${l10n.translateSkinType(a.skinType)}',
                               ].join(' • '),
                               style: const TextStyle(
                                 color: AppTheme.textSecondary,
@@ -97,7 +99,7 @@ class HistoryScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '${a.recommendations.length} produtos • ${a.createdAt.day}/${a.createdAt.month}/${a.createdAt.year} ${a.createdAt.hour}:${a.createdAt.minute.toString().padLeft(2, '0')}',
+                              '${a.recommendations.length} ${l10n.t('produtos', 'produits')} • ${a.createdAt.day}/${a.createdAt.month}/${a.createdAt.year} ${a.createdAt.hour}:${a.createdAt.minute.toString().padLeft(2, '0')}',
                               style: const TextStyle(
                                 color: AppTheme.textMuted,
                                 fontSize: 11,
@@ -124,7 +126,7 @@ class HistoryScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text(
-            'Erro: $e',
+            '${l10n.t('Erro', 'Erreur')}: $e',
             style: const TextStyle(color: AppTheme.error),
           ),
         ),
@@ -133,15 +135,16 @@ class HistoryScreen extends ConsumerWidget {
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref, String id) {
+    final l10n = AppL10n.of(context, ref);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Apagar análise?'),
-        content: const Text('Esta ação não pode ser desfeita.'),
+        title: Text(l10n.t('Apagar análise?', 'Supprimer l\'analyse ?')),
+        content: Text(l10n.t('Esta ação não pode ser desfeita.', 'Cette action ne peut pas être annulée.')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -149,9 +152,9 @@ class HistoryScreen extends ConsumerWidget {
               await ref.read(supabaseServiceProvider).deleteAnalysis(id);
               ref.invalidate(analysesProvider);
             },
-            child: const Text(
-              'Apagar',
-              style: TextStyle(color: AppTheme.error),
+            child: Text(
+              l10n.delete,
+              style: const TextStyle(color: AppTheme.error),
             ),
           ),
         ],

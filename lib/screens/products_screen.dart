@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../config/theme.dart';
+import '../config/l10n.dart';
 import '../providers/providers.dart';
 
 class ProductsScreen extends ConsumerWidget {
@@ -11,29 +12,30 @@ class ProductsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final products = ref.watch(productsProvider);
+    final l10n = AppL10n.of(context, ref);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Catálogo de Produtos')),
+      appBar: AppBar(title: Text(l10n.productCatalogTitle)),
       body: products.when(
         data: (list) {
           if (list.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.spa_outlined, size: 64, color: AppTheme.textMuted),
-                  SizedBox(height: 16),
+                  const Icon(Icons.spa_outlined, size: 64, color: AppTheme.textMuted),
+                  const SizedBox(height: 16),
                   Text(
-                    'Nenhum produto disponível',
-                    style: TextStyle(
+                    l10n.noProductsAvailable,
+                    style: const TextStyle(
                       color: AppTheme.textSecondary,
                       fontSize: 16,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    'Adicione produtos na secção Admin',
-                    style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    l10n.addProductsAdminTip,
+                    style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
                   ),
                 ],
               ),
@@ -57,7 +59,7 @@ class ProductsScreen extends ConsumerWidget {
                 children: [
                   if (i > 0) const SizedBox(height: 24),
                   Text(
-                    cat,
+                    l10n.translateCategory(cat),
                     style: const TextStyle(
                       color: AppTheme.primaryPurpleLight,
                       fontSize: 16,
@@ -70,7 +72,7 @@ class ProductsScreen extends ConsumerWidget {
                     (e) =>
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
-                          child: _productTile(context, e.value),
+                          child: _productTile(context, ref, e.value),
                         ).animate().fadeIn(
                           delay: Duration(milliseconds: 100 * e.key),
                         ),
@@ -83,7 +85,7 @@ class ProductsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text(
-            'Erro: $e',
+            '${l10n.t('Erro', 'Erreur')}: $e',
             style: const TextStyle(color: AppTheme.error),
           ),
         ),
@@ -91,7 +93,8 @@ class ProductsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _productTile(BuildContext context, dynamic product) {
+  Widget _productTile(BuildContext context, WidgetRef ref, dynamic product) {
+    final l10n = AppL10n.of(context, ref);
     return GestureDetector(
       onTap: () => context.push('/products/${product.id}'),
       child: Container(
@@ -141,7 +144,7 @@ class ProductsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    product.category,
+                    l10n.translateCategory(product.category),
                     style: const TextStyle(
                       color: AppTheme.textMuted,
                       fontSize: 12,
