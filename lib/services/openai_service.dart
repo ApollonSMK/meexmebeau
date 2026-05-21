@@ -13,8 +13,13 @@ class OpenAIService {
     OpenAI.apiKey = AppConstants.openAiApiKey;
   }
 
-  /// System prompt for the skin analysis AI
-  static const String _systemPrompt = '''
+  /// System prompt helper for the skin analysis AI
+  static String _getSystemPrompt(String targetLanguage) {
+    final langInstructions = targetLanguage == 'fr'
+        ? '- Responda sempre em Francês (Français) sofisticado, refinado e com terminologia clínica altamente profissional (clinical-grade French). O relatório deve ser completamente escrito em Francês.'
+        : '- Responda sempre em Português de Portugal (PT-PT) sofisticado, elegante e profissional. O relatório deve ser completamente escrito em Português.';
+
+    return '''
 Você é um médico dermatologista estético altamente conceituado e especialista em cosmetologia avançada, com vasta experiência em analisar relatórios do scanner facial M7 (e equipamentos similares de imagem multiespectral).
 
 Sua missão é realizar uma análise de pele extremamente detalhada, clínica, rigorosa e personalizada, fornecendo ao cliente um diagnóstico profundo e um plano de tratamento de prestígio (tipo premium/estúdio de estética de luxo).
@@ -49,7 +54,7 @@ Ao receber os dados de análise (que incluem scores, métricas e dados de imagem
    - Equilibre a recomendação entre:
      * [Rotina Casa / Público]: Cuidados diários que o cliente fará em casa.
      * [Tratamento Interno / Clínica]: Protocolos intensivos que só podem ser aplicados em consultório pelo profissional.
-   - No campo "reason" de cada produto, escreva uma explicação clínica detalhada e sofisticada, justificando o porquê de aquele produto em particular ser vital para a regeneração da pele daquele cliente.
+   - No campo "reason" de cada produto, escreva uma explicação clínica detalhada e sofisticada, justificando o porquê de aquele produto em particular ser vital para a regeneração da pele do cliente.
 
 4. PROTOCOLO DE ROTINA DE CASA DETALHADO (routine_suggestion):
    O campo "routine_suggestion" deve ser um guia passo a passo luxuoso e extremamente detalhado para o ritual diário do cliente, separado por:
@@ -57,7 +62,11 @@ Ao receber os dados de análise (que incluem scores, métricas e dados de imagem
    - RITUAL NOTURNO (NOITE): Passos claros e ordenados de dupla limpeza, esfoliação/máscara semanal (se recomendado), tratamento reparador regenerador (com retinol ou ácidos ativos) e creme de nutrição profunda, especificando a frequência de uso e técnicas de relaxamento facial.
 
 REGRAS DE FORMATAÇÃO E IDIOMA CRÍTICAS:
-- Responda SEMPRE em Português de Portugal sofisticado, elegante e profissional.
+- Analise o idioma em que o rapport de entrada foi escrito (Francês ou Português).
+- Responda no idioma do rapport (Francês ou Português). Se o rapport não contiver texto suficiente para determinar com clareza o idioma, ou se o idioma do rapport for ambíguo, utilize o seguinte idioma preferencial do sistema do utilizador:
+  $langInstructions
+- Todos os campos textuais livres (ex: 'summary', 'concerns', 'routine_suggestion', e o campo 'reason' em 'recommendations') devem ser escritos inteiramente no idioma correspondente (Francês ou Português).
+- O campo 'skin_type' DEVE ser sempre respondido com um dos valores exatos em Português: 'Normal', 'Oleosa', 'Seca', 'Mista' ou 'Sensível', para manter a consistência com a base de dados da aplicação móvel.
 - NÃO use nenhuma formatação markdown (NÃO use asteriscos **, cardinais ##, marcadores de lista markdown, etc.). Use apenas texto simples. Para estruturar cabeçalhos, use letras maiúsculas (ex: RITUAL MATINAL:) e use quebras de linha com \n\n para separar secções.
 - Responda EXCLUSIVAMENTE em formato JSON perfeitamente válido com a estrutura indicada abaixo.
 
@@ -89,11 +98,13 @@ Estrutura JSON esperada:
   "routine_suggestion": "RITUAL MATINAL (MANHÃ):\\n\\n1. Limpeza...\\n2. Tonificação...\\n\\nRITUAL NOTURNO (NOITE):\\n\\n1. Dupla Limpeza...\\n2. Tratamento reparador..."
 }
 ''';
+  }
 
   /// Analyze a rapport and recommend products
   Future<AnalysisResult> analyzeRapport({
     required String rapportText,
     required List<Product> availableProducts,
+    String targetLanguage = 'fr',
   }) async {
     // Build the product catalog for the prompt
     final productCatalog = availableProducts
@@ -123,7 +134,7 @@ Analise o rapport acima e recomende os melhores produtos do catálogo para este 
           role: OpenAIChatMessageRole.system,
           content: [
             OpenAIChatCompletionChoiceMessageContentItemModel.text(
-              _systemPrompt,
+              _getSystemPrompt(targetLanguage),
             ),
           ],
         ),
@@ -152,6 +163,7 @@ Analise o rapport acima e recomende os melhores produtos do catálogo para este 
   Future<AnalysisResult> analyzePdfDirect({
     required String pdfFilePath,
     required List<Product> availableProducts,
+    String targetLanguage = 'fr',
   }) async {
     // 1. Extract text locally using Syncfusion PDF
     String extractedText = '';
@@ -200,7 +212,7 @@ Analise o rapport completo de forma profunda e profissional (incluindo imagens, 
         'messages': [
           {
             'role': 'system',
-            'content': _systemPrompt,
+            'content': _getSystemPrompt(targetLanguage),
           },
           {
             'role': 'user',

@@ -109,6 +109,7 @@ class AdminProductsScreen extends ConsumerWidget {
         await ref.read(supabaseServiceProvider).hardDeleteProduct(product.id);
         ref.invalidate(allProductsProvider);
         ref.invalidate(productsProvider);
+        ref.invalidate(adminStatsProvider);
       },
       child: GestureDetector(
         onTap: () => context.push('/admin/products/edit/${product.id}'),

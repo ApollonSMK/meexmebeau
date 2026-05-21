@@ -401,6 +401,7 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
 
       ref.invalidate(allProductsProvider);
       ref.invalidate(productsProvider);
+      ref.invalidate(adminStatsProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -5,6 +5,7 @@ import '../services/openai_service.dart';
 import '../services/share_intent_service.dart';
 import '../models/product.dart';
 import '../models/analysis_result.dart';
+import '../config/l10n.dart';
 
 // ============ CORE SERVICES ============
 
@@ -110,10 +111,14 @@ class AnalysisNotifier extends Notifier<AnalysisState> {
         return;
       }
 
+      final lang = ref.read(languageProvider);
+      final langCode = lang == AppLanguage.pt ? 'pt' : 'fr';
+
       // 2. Send to OpenAI for analysis
       final result = await openAIService.analyzeRapport(
         rapportText: rapportText,
         availableProducts: products,
+        targetLanguage: langCode,
       );
 
       // 3. Fetch recommended products
@@ -174,10 +179,14 @@ class AnalysisNotifier extends Notifier<AnalysisState> {
       // 1. Get available products
       final products = await supabaseService.getProducts();
 
+      final lang = ref.read(languageProvider);
+      final langCode = lang == AppLanguage.pt ? 'pt' : 'fr';
+
       // 2. Send PDF directly to GPT-4o (images + text + charts)
       final result = await openAIService.analyzePdfDirect(
         pdfFilePath: filePath,
         availableProducts: products,
+        targetLanguage: langCode,
       );
 
       // 3. Save analysis
