@@ -320,8 +320,11 @@ class _AdminProductFormState extends ConsumerState<AdminProductForm> {
     try {
       final bytes = await _imagemLocal!.readAsBytes();
       final ext = _imagemLocal!.path.split('.').last.toLowerCase();
+      final cleanName = _nomeController.text.trim()
+          .replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')
+          .toLowerCase();
       final fileName =
-          '${DateTime.now().millisecondsSinceEpoch}_${_nomeController.text.trim().replaceAll(' ', '_')}.$ext';
+          '${DateTime.now().millisecondsSinceEpoch}_$cleanName.$ext';
       final service = ref.read(supabaseServiceProvider);
       return await service.uploadProductImage(fileName, bytes);
     } catch (e) {
