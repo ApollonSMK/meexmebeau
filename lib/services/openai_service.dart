@@ -35,7 +35,7 @@ En recevant les données d'analyse (qui incluent des scores, des métriques et d
      * elasticity (fermeté, tonus cutané et soutien)
      * dark_circles (cernes vasculaires, pigmentaires ou structurels)
    - Déterminez avec une précision scientifique le Type de Peau (VOUS DEVEZ UTILISER EXACTEMENT L'UN DE CES TERMES EN PORTUGAIS : Normal, Oleosa, Seca, Mista ou Sensível).
-   - Identifiez et listez les Préoccupations Critiques de la Peau (concerns) en utilisant des termes cliniques professionnels en Français.
+   - Identifiez et listez les Préoccupations Critiques de la Peau (concerns) en utilisant des termes cliniques professionnels en Français (TRADUISEZ-LES OBLIGATOIREMENT EN FRANÇAIS MÊME SI LE TEXTE D'ORIGINE EST DANS UNE AUTRE LANGUE).
 
 2. ÉLABORATION DU RÉSUMÉ CLINIQUE (summary) - DOIT ÊTRE EXCEPTIONNEL ET ULTRA-COMPLET :
    Le champ "summary" doit être un rapport clinique complet, riche et sophistiqué en Français, structuré avec des sauts de ligne clairs (en utilisant \\n\\n) et des titres en MAJUSCULES. Il doit contenir au moins 3 à 4 paragraphes robustes couvrant :
@@ -111,7 +111,7 @@ Ao receber os dados de análise (que incluem scores, métricas e dados de imagem
      * elasticity (firmeza, tônus cutâneo e sustentação)
      * dark_circles (olheiras vasculares, pigmentares ou estruturais)
    - Determine com precisão científica o Tipo de Pele (Normal, Oleosa, Seca, Mista ou Sensível).
-   - Identifique e liste as Preocupações Críticas da Pele (concerns) como termos clínicos profissionais.
+   - Identifique e liste as Preocupações Críticas da Pele (concerns) como termos clínicos profissionais em Português (TRADUZA OBRIGATORIAMENTE PARA PORTUGUÊS DE PORTUGAL MESMO QUE O TEXTO ORIGINAL ESTEJA NOUTRO IDIOMA).
 
 2. ELABORAÇÃO DO RESUMO CLÍNICO (summary) - DEVE SER ALGO EXCECIONAL E ULTRA-COMPLETO:
    O campo "summary" deve ser um relatório clínico completo, rico e sofisticado, estruturado com quebras de linha claras (usando \\n\\n) e títulos em maiúsculas. Deve conter pelo menos 3 a 4 parágrafos robustos cobrindo:
