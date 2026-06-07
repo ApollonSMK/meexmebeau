@@ -97,6 +97,27 @@ class ProductRecommendation {
   }
 }
 
+class SpectrumImage {
+  final String label;
+  final String url;
+
+  SpectrumImage({required this.label, required this.url});
+
+  factory SpectrumImage.fromJson(Map<String, dynamic> json) {
+    return SpectrumImage(
+      label: json['label'] as String? ?? 'Scanner',
+      url: json['url'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'label': label,
+      'url': url,
+    };
+  }
+}
+
 class AnalysisResult {
   final String id;
   final String? rapportRaw;
@@ -111,6 +132,7 @@ class AnalysisResult {
   final List<ProductRecommendation> recommendations;
   final String? routineSuggestion;
   final String? faceImage;
+  final List<SpectrumImage> spectrumImages;
   final DateTime createdAt;
 
   AnalysisResult({
@@ -127,6 +149,7 @@ class AnalysisResult {
     this.recommendations = const [],
     this.routineSuggestion,
     this.faceImage,
+    this.spectrumImages = const [],
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -161,6 +184,11 @@ class AnalysisResult {
           : [],
       routineSuggestion: aiAnalysis['routine_suggestion'] as String?,
       faceImage: aiAnalysis['face_image_url'] as String?,
+      spectrumImages: aiAnalysis['spectrum_images'] != null
+          ? (aiAnalysis['spectrum_images'] as List)
+              .map((item) => SpectrumImage.fromJson(Map<String, dynamic>.from(item as Map)))
+              .toList()
+          : const [],
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
@@ -183,6 +211,7 @@ class AnalysisResult {
         'recommendations': recommendations.map((r) => r.toJson()).toList(),
         'routine_suggestion': routineSuggestion,
         'face_image_url': faceImage,
+        'spectrum_images': spectrumImages.map((s) => s.toJson()).toList(),
       },
       'recommended_product_ids': recommendations
           .map((r) => r.productId)
@@ -220,6 +249,7 @@ class AnalysisResult {
           : [],
       routineSuggestion: gptJson['routine_suggestion'] as String?,
       faceImage: gptJson['face_image_url'] as String?,
+      spectrumImages: const [],
     );
   }
 }

@@ -245,4 +245,69 @@ class SupabaseService {
     final response = await _client.from('analyses').select('id');
     return (response as List).length;
   }
+
+  /// Upload and add an analysis spectrum image
+  Future<String> uploadAnalysisPhoto(String analysisId, String label, List<int> bytes) async {
+    final cleanLabel = label.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_').toLowerCase();
+    final fileName = 'analysis_${analysisId}_${cleanLabel}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final path = 'analyses/$fileName';
+
+    await _client.storage
+        .from('product-images')
+        .uploadBinary(
+          path,
+          Uint8List.fromList(bytes),
+          fileOptions: const FileOptions(upsert: true),
+        );
+
+    final imageUrl = _client.storage.from('product-images').getPublicUrl(path);
+
+    // Now update the analysis row in DB
+    final analysisRow = await _client
+        .from('analyses')
+        .select()
+        .eq('id', analysisId)
+        .single();
+
+    final aiAnalysis = Map<String, dynamic>.from(analysisRow['ai_analysis'] as Map? ?? {});
+    final spectrumImages = List<Map<String, dynamic>>.from(
+      (aiAnalysis['spectrum_images'] as List?)?.map((item) => Map<String, dynamic>.from(item as Map)) ?? []
+    );
+
+    spectrumImages.add({
+      'label': label,
+      'url': imageUrl,
+    });
+
+    aiAnalysis['spectrum_images'] = spectrumImages;
+
+    await _client
+        .from('analyses')
+        .update({'ai_analysis': aiAnalysis})
+        .eq('id', analysisId);
+
+    return imageUrl;
+  }
+
+  /// Remove an analysis spectrum image
+  Future<void> deleteAnalysisPhoto(String analysisId, String imageUrl) async {
+    final analysisRow = await _client
+        .from('analyses')
+        .select()
+        .eq('id', analysisId)
+        .single();
+
+    final aiAnalysis = Map<String, dynamic>.from(analysisRow['ai_analysis'] as Map? ?? {});
+    final spectrumImages = List<Map<String, dynamic>>.from(
+      (aiAnalysis['spectrum_images'] as List?)?.map((item) => Map<String, dynamic>.from(item as Map)) ?? []
+    );
+
+    spectrumImages.removeWhere((item) => item['url'] == imageUrl);
+    aiAnalysis['spectrum_images'] = spectrumImages;
+
+    await _client
+        .from('analyses')
+        .update({'ai_analysis': aiAnalysis})
+        .eq('id', analysisId);
+  }
 }
