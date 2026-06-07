@@ -173,10 +173,6 @@ class _AnalysisDetailScreenState extends ConsumerState<AnalysisDetailScreen> {
               .scale(begin: const Offset(0.9, 0.9)),
           const SizedBox(height: 24),
 
-          // Multi-camera Scanner Gallery
-          _buildScannerGallery(result, l10n).animate().fadeIn(delay: 150.ms, duration: 400.ms),
-          const SizedBox(height: 28),
-
           // Radar Chart of Skin Scores
           Text(
             l10n.skinScores,
@@ -647,6 +643,7 @@ class _AnalysisDetailScreenState extends ConsumerState<AnalysisDetailScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildScannerGallery(AnalysisResult result, AppL10n l10n) {
     final images = result.spectrumImages;
 

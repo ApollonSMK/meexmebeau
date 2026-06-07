@@ -49,6 +49,17 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AnalysisState>(analysisNotifierProvider, (previous, next) {
+      if (next.status == AnalysisStatus.success && next.result != null) {
+        final id = next.result!.id;
+        Future.microtask(() {
+          ref.read(analysisNotifierProvider.notifier).reset();
+          if (!context.mounted) return;
+          context.pushReplacement('/analysis/result/$id');
+        });
+      }
+    });
+
     final state = ref.watch(analysisNotifierProvider);
     final l10n = AppL10n.of(context, ref);
 
@@ -72,7 +83,9 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
         ),
         AnalysisStatus.loading => const LoadingOverlay(),
         AnalysisStatus.error => _buildError(state.error ?? l10n.t('Erro desconhecido', 'Erreur inconnue')),
-        AnalysisStatus.success => _buildResults(state),
+        AnalysisStatus.success => const Center(
+            child: CircularProgressIndicator(color: AppTheme.primarySalmon),
+          ),
       },
     );
   }
@@ -116,6 +129,7 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildResults(AnalysisState state) {
     final result = state.result!;
     final products = state.recommendedProducts;
