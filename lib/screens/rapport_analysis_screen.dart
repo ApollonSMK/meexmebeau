@@ -200,7 +200,7 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildScoresGrid(result.skinScores),
+          _buildScoresGrid(result.skinScores, l10n),
           const SizedBox(height: 24),
 
           // Concerns
@@ -363,7 +363,7 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
     );
   }
 
-  Widget _buildScoresGrid(SkinScores scores) {
+  Widget _buildScoresGrid(SkinScores scores, AppL10n l10n) {
     final metrics = scores.toMap();
     return GridView.builder(
       shrinkWrap: true,
@@ -378,7 +378,7 @@ class _RapportAnalysisScreenState extends ConsumerState<RapportAnalysisScreen> {
       itemBuilder: (ctx, i) {
         final entry = metrics.entries.elementAt(i);
         return SkinMetricGauge(
-          label: entry.key,
+          label: l10n.translateMetric(entry.key),
           value: entry.value,
         ).animate().fadeIn(delay: Duration(milliseconds: 300 + i * 100));
       },

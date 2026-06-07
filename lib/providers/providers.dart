@@ -243,7 +243,7 @@ class AdminStats {
 
 final adminStatsProvider = FutureProvider<AdminStats>((ref) async {
   final service = ref.read(supabaseServiceProvider);
-  final productCount = await service.getProductCount();
+  final products = await ref.watch(allProductsProvider.future);
   final analysisCount = await service.getAnalysisCount();
-  return AdminStats(productCount: productCount, analysisCount: analysisCount);
+  return AdminStats(productCount: products.length, analysisCount: analysisCount);
 });

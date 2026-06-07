@@ -61,14 +61,14 @@ class SkinScores {
 
   Map<String, double> toMap() {
     return {
-      'Hidratação': hydration,
-      'Rugas': wrinkles,
-      'Poros': pores,
-      'Manchas': spots,
-      'Textura': texture,
-      'Acne': acne,
-      'Elasticidade': elasticity,
-      'Olheiras': darkCircles,
+      'hydration': hydration,
+      'wrinkles': wrinkles,
+      'pores': pores,
+      'spots': spots,
+      'texture': texture,
+      'acne': acne,
+      'elasticity': elasticity,
+      'dark_circles': darkCircles,
     };
   }
 }
